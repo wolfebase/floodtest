@@ -189,7 +189,11 @@ func (e *Engine) downloadLoop(ctx context.Context, totalWorkers int) {
 			}
 		}
 
-		_, err := e.downloadFrom(ctx, client, serverURL, buf, totalWorkers)
+		e.serverList.IncrementStreams(serverURL)
+		start := time.Now()
+		bytesRead, err := e.downloadFrom(ctx, client, serverURL, buf, totalWorkers)
+		e.serverList.DecrementStreams(serverURL)
+
 		if err != nil {
 			if ctx.Err() != nil {
 				return // shutting down, not a server error
@@ -204,6 +208,13 @@ func (e *Engine) downloadLoop(ctx context.Context, totalWorkers int) {
 		} else {
 			// Completed successfully (EOF)
 			e.serverList.MarkSuccess(serverURL)
+
+			// Update speed score if the download ran long enough for a meaningful measurement.
+			elapsed := time.Since(start)
+			if elapsed > time.Second {
+				bps := bytesRead * 8 / int64(elapsed.Seconds())
+				e.serverList.UpdateSpeedScore(serverURL, bps)
+			}
 		}
 	}
 }
