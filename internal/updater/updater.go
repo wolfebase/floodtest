@@ -203,17 +203,16 @@ docker rm -f floodtest-updater 2>/dev/null || true
 	// Remove stale updater container if exists
 	u.docker.ContainerRemove(ctx, "floodtest-updater", container.RemoveOptions{Force: true})
 
-	// Ensure docker:cli image is available
-	cliReader, err := u.docker.ImagePull(ctx, "docker:cli", image.PullOptions{})
-	if err != nil {
-		u.record(prev, "", "failed", err.Error())
-		return fmt.Errorf("pull docker:cli: %w", err)
+	// Find or pull a helper image that has docker CLI.
+	// Try multiple variants in case one isn't available.
+	helperImage := u.ensureHelperImage(ctx)
+	if helperImage == "" {
+		u.record(prev, "", "failed", "no suitable helper image found")
+		return fmt.Errorf("update failed: could not pull a Docker CLI helper image. Run manually: cd %s && docker compose pull && docker compose up -d --force-recreate", u.composeDir)
 	}
-	io.Copy(io.Discard, cliReader)
-	cliReader.Close()
 
 	resp, err := u.docker.ContainerCreate(ctx, &container.Config{
-		Image: "docker:cli",
+		Image: helperImage,
 		Cmd:   []string{"sh", "/data/.floodtest-update.sh"},
 	}, &container.HostConfig{
 		Mounts: []mount.Mount{
@@ -277,6 +276,40 @@ func (u *Updater) GetHistory() []UpdateHistoryEntry {
 }
 
 // --- internal helpers ---
+
+// ensureHelperImage tries to find or pull a Docker image that contains
+// the docker CLI (needed to run docker compose). It tries multiple image
+// names in order, first checking if any are already available locally,
+// then pulling. Returns the image name or empty string if all fail.
+func (u *Updater) ensureHelperImage(ctx context.Context) string {
+	candidates := []string{"docker:cli", "docker:27-cli", "docker:latest"}
+
+	// First check if any candidate is already available locally.
+	for _, img := range candidates {
+		_, _, err := u.docker.ImageInspectWithRaw(ctx, img)
+		if err == nil {
+			log.Printf("updater: using existing helper image %s", img)
+			return img
+		}
+	}
+
+	// None available locally — try pulling each one.
+	for _, img := range candidates {
+		log.Printf("updater: pulling helper image %s...", img)
+		reader, err := u.docker.ImagePull(ctx, img, image.PullOptions{})
+		if err != nil {
+			log.Printf("updater: failed to pull %s: %v", img, err)
+			continue
+		}
+		io.Copy(io.Discard, reader)
+		reader.Close()
+		log.Printf("updater: pulled helper image %s", img)
+		return img
+	}
+
+	log.Println("updater: could not find or pull any Docker CLI helper image")
+	return ""
+}
 
 func (u *Updater) getCurrentDigest() string {
 	if u.docker == nil {
