@@ -456,3 +456,14 @@ func (sl *ServerList) TotalCount() int {
 	defer sl.mu.RUnlock()
 	return len(sl.servers)
 }
+
+// ResetCooldowns marks all servers as healthy, clearing any backoff state.
+func (sl *ServerList) ResetCooldowns() {
+	sl.mu.Lock()
+	defer sl.mu.Unlock()
+	for i := range sl.servers {
+		sl.servers[i].healthy = true
+		sl.servers[i].unhealthyUntil = time.Time{}
+		sl.servers[i].consecutiveFailures = 0
+	}
+}

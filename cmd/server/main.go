@@ -17,6 +17,7 @@ import (
 	"wansaturator/internal/db"
 	"wansaturator/internal/download"
 	"wansaturator/internal/scheduler"
+	"wansaturator/internal/speedtest"
 	"wansaturator/internal/stats"
 	"wansaturator/internal/throttle"
 	"wansaturator/internal/updater"
@@ -85,6 +86,10 @@ func main() {
 	var speedTestRunning atomic.Bool
 	var speedTestCompleted atomic.Int32
 	var speedTestTotal atomic.Int32
+	var ispTestRunning atomic.Bool
+	var ispTestPhase atomic.Value
+	var ispTestProgress atomic.Int32
+	ispTestPhase.Store("")
 	ctx, rootCancel := context.WithCancel(context.Background())
 	defer rootCancel()
 
@@ -121,6 +126,42 @@ func main() {
 			dlEngine.Stop()
 			ulEngine.Stop()
 			httpUploadEngine.Stop()
+			running.Store(false)
+			time.Sleep(2 * time.Second) // TCP drain before speed test
+		}
+
+		cfgNow := cfg.Get()
+
+		// Auto-mode handling
+		switch cfgNow.AutoMode {
+		case config.AutoModeReliable:
+			// Run ISP speed test to auto-configure
+			ispTestRunning.Store(true)
+			result, err := speedtest.RunISPTest(ctx, func(phase string, pct int) {
+				ispTestPhase.Store(phase)
+				ispTestProgress.Store(int32(pct))
+			})
+			ispTestRunning.Store(false)
+			ispTestPhase.Store("")
+			ispTestProgress.Store(0)
+
+			if err != nil {
+				log.Printf("ISP speed test failed: %v — using config defaults", err)
+			} else {
+				dlMbps, ulMbps = autoConfigFromSpeedTest(result, cfg)
+				cfgNow = cfg.Get()
+				log.Printf("Auto-configured: %dMbps down, %dMbps up (%d/%d streams)",
+					dlMbps, ulMbps, cfgNow.DownloadConcurrency, cfgNow.UploadConcurrency)
+			}
+
+		case config.AutoModeMax:
+			dlMbps = 0
+			ulMbps = 0
+			cfgNow.DownloadConcurrency = 64
+			cfgNow.UploadConcurrency = 32
+			serverList.ResetCooldowns()
+			uploadServerList.ResetCooldowns()
+			log.Println("Max mode: no rate limits, 64 dl / 32 ul streams")
 		}
 
 		// Update rate limits and auto-adjust targets
@@ -130,7 +171,6 @@ func main() {
 		ulEngine.SetTargetBps(int64(ulMbps) * 1_000_000)
 
 		// Update concurrency from config
-		cfgNow := cfg.Get()
 		dlEngine.SetConcurrency(cfgNow.DownloadConcurrency)
 		ulEngine.SetConcurrency(cfgNow.UploadConcurrency)
 
@@ -282,6 +322,27 @@ func main() {
 	}
 	app.GetUpdateHistory = func() interface{} { return upd.GetHistory() }
 	app.GetUploadServerHealth = func() interface{} { return uploadServerList.HealthStatus() }
+	app.RunISPSpeedTest = func(ctx context.Context) (interface{}, error) {
+		if running.Load() {
+			stopEngines()
+			time.Sleep(2 * time.Second)
+		}
+		ispTestRunning.Store(true)
+		defer func() {
+			ispTestRunning.Store(false)
+			ispTestPhase.Store("")
+			ispTestProgress.Store(0)
+		}()
+		result, err := speedtest.RunISPTest(ctx, func(phase string, pct int) {
+			ispTestPhase.Store(phase)
+			ispTestProgress.Store(int32(pct))
+		})
+		if err != nil {
+			return nil, err
+		}
+		autoConfigFromSpeedTest(result, cfg)
+		return result, nil
+	}
 
 	router := api.NewRouter(app, frontend)
 
@@ -317,7 +378,50 @@ func main() {
 					SpeedTestRunning:     speedTestRunning.Load(),
 					SpeedTestCompleted:   int(speedTestCompleted.Load()),
 					SpeedTestTotal:       int(speedTestTotal.Load()),
+					AutoMode:             cfg.Get().AutoMode,
+					MeasuredDownloadMbps: cfg.Get().MeasuredDownloadMbps,
+					MeasuredUploadMbps:   cfg.Get().MeasuredUploadMbps,
+					ISPTestRunning:       ispTestRunning.Load(),
+					ISPTestPhase:         ispTestPhase.Load().(string),
+					ISPTestProgress:      int(ispTestProgress.Load()),
 				})
+			}
+		}
+	}()
+
+	// Periodic ISP speed re-test (Reliable mode only, every 6 hours)
+	go func() {
+		ticker := time.NewTicker(6 * time.Hour)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-ctx.Done():
+				return
+			case <-ticker.C:
+				cfgNow := cfg.Get()
+				if cfgNow.AutoMode != config.AutoModeReliable || !running.Load() {
+					continue
+				}
+				log.Println("Periodic ISP speed re-test starting...")
+				stopEngines()
+				time.Sleep(2 * time.Second)
+
+				ispTestRunning.Store(true)
+				result, err := speedtest.RunISPTest(ctx, func(phase string, pct int) {
+					ispTestPhase.Store(phase)
+					ispTestProgress.Store(int32(pct))
+				})
+				ispTestRunning.Store(false)
+				ispTestPhase.Store("")
+				ispTestProgress.Store(0)
+
+				if err != nil {
+					log.Printf("Periodic speed test failed: %v — resuming with current settings", err)
+				} else {
+					autoConfigFromSpeedTest(result, cfg)
+				}
+				cfgNow = cfg.Get()
+				startEngines(cfgNow.DefaultDownloadMbps, cfgNow.DefaultUploadMbps)
 			}
 		}
 	}()
@@ -354,6 +458,43 @@ func main() {
 
 	rootCancel()
 	log.Println("Shutdown complete")
+}
+
+func autoConfigFromSpeedTest(result *speedtest.Result, cfg *config.Config) (dlMbps, ulMbps int) {
+	dlMbps = int(result.DownloadMbps * 0.9)
+	ulMbps = int(result.UploadMbps * 0.9)
+	if dlMbps < 10 {
+		dlMbps = 10
+	}
+	if ulMbps < 10 {
+		ulMbps = 10
+	}
+
+	dlStreams := dlMbps / 50
+	if dlStreams < 4 {
+		dlStreams = 4
+	}
+	if dlStreams > 32 {
+		dlStreams = 32
+	}
+	ulStreams := ulMbps / 50
+	if ulStreams < 4 {
+		ulStreams = 4
+	}
+	if ulStreams > 32 {
+		ulStreams = 32
+	}
+
+	cfg.MeasuredDownloadMbps = result.DownloadMbps
+	cfg.MeasuredUploadMbps = result.UploadMbps
+	cfg.LastSpeedTestTime = time.Now().UTC().Format(time.RFC3339)
+	cfg.DefaultDownloadMbps = dlMbps
+	cfg.DefaultUploadMbps = ulMbps
+	cfg.DownloadConcurrency = dlStreams
+	cfg.UploadConcurrency = ulStreams
+	cfg.Save()
+
+	return
 }
 
 func mbpsToBps(mbps int) int64 {
