@@ -105,11 +105,21 @@ export default function UpdatesPage() {
       {/* Current version + check */}
       <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
         <h3 className="text-lg font-semibold text-white mb-4">Current Version</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
           <div>
-            <span className="text-sm text-gray-400">Running Image</span>
-            <p className="text-sm font-mono text-white mt-1">
-              {status?.currentDigest || 'Unknown'}
+            <span className="text-sm text-gray-400">Version</span>
+            <p className="text-sm font-semibold text-white mt-1">
+              {status?.currentVersion && status.currentVersion !== 'dev'
+                ? status.currentVersion
+                : status?.currentDigest || 'Unknown'}
+            </p>
+          </div>
+          <div>
+            <span className="text-sm text-gray-400">Built</span>
+            <p className="text-sm text-white mt-1">
+              {status?.currentBuildDate && status.currentBuildDate !== 'unknown'
+                ? new Date(status.currentBuildDate).toLocaleDateString()
+                : '—'}
             </p>
           </div>
           <div>
@@ -151,10 +161,15 @@ export default function UpdatesPage() {
           </p>
         )}
 
-        {status?.updateAvailable && status?.latestDigest && (
+        {status?.updateAvailable && (
           <div className="mt-3 bg-blue-900/20 border border-blue-800 rounded-lg p-3">
-            <span className="text-xs text-blue-400">New version available</span>
-            <p className="text-xs font-mono text-blue-300 mt-1">{status.latestDigest}</p>
+            <span className="text-sm text-blue-400 font-medium">New version available</span>
+            {status.latestVersion && (
+              <p className="text-sm text-blue-300 mt-1">Version {status.latestVersion}</p>
+            )}
+            {!status.latestVersion && status.latestDigest && (
+              <p className="text-xs font-mono text-blue-300/60 mt-1">{status.latestDigest}</p>
+            )}
           </div>
         )}
       </div>

@@ -113,6 +113,9 @@ export interface UploadServerHealth {
 }
 
 export interface UpdateStatus {
+  currentVersion: string
+  currentBuildDate: string
+  latestVersion?: string
   currentDigest: string
   latestDigest?: string
   updateAvailable: boolean

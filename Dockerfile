@@ -12,13 +12,18 @@ RUN npm run build
 ## Stage 2: Build Go binary
 ##
 FROM golang:1.26-alpine AS backend
+ARG VERSION=dev
+ARG BUILD_DATE=unknown
 WORKDIR /app
 COPY go.mod ./
 COPY go.sum* ./
 COPY . .
 COPY --from=frontend /app/frontend/dist ./cmd/server/frontend/dist
 RUN go mod tidy && go mod download
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o /wansaturator ./cmd/server
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w \
+    -X wansaturator/internal/version.Version=${VERSION} \
+    -X wansaturator/internal/version.BuildDate=${BUILD_DATE}" \
+    -o /wansaturator ./cmd/server
 
 ##
 ## Stage 3: Runtime

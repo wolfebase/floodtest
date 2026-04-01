@@ -29,6 +29,15 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ github.token }}
 
+      - name: Generate version string
+        id: version
+        run: |
+          VERSION=$(date -u +%Y.%m.%d)-$(echo "${{ github.sha }}" | cut -c1-7)
+          BUILD_DATE=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "build_date=$BUILD_DATE" >> "$GITHUB_OUTPUT"
+          echo "Generated version: $VERSION"
+
       - name: Extract metadata (tags, labels)
         id: meta
         uses: docker/metadata-action@v5
@@ -39,6 +48,8 @@ jobs:
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=raw,value=latest,enable={{is_default_branch}}
+          labels: |
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
 
       - name: Build and push
         uses: docker/build-push-action@v5
@@ -48,5 +59,8 @@ jobs:
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.version.outputs.version }}
+            BUILD_DATE=${{ steps.version.outputs.build_date }}
           cache-from: type=gha
           cache-to: type=gha,mode=max

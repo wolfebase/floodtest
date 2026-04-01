@@ -12,6 +12,8 @@ import (
 	"sync"
 	"time"
 
+	"wansaturator/internal/version"
+
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/image"
 	"github.com/docker/docker/api/types/mount"
@@ -19,6 +21,9 @@ import (
 )
 
 type UpdateStatus struct {
+	CurrentVersion     string `json:"currentVersion"`
+	CurrentBuildDate   string `json:"currentBuildDate"`
+	LatestVersion      string `json:"latestVersion,omitempty"`
 	CurrentDigest      string `json:"currentDigest"`
 	LatestDigest       string `json:"latestDigest,omitempty"`
 	UpdateAvailable    bool   `json:"updateAvailable"`
@@ -50,6 +55,7 @@ type Updater struct {
 
 	currentDigest   string
 	latestDigest    string
+	latestVersion   string
 	lastCheckTime   time.Time
 	lastUpdateTime  time.Time
 	updateAvailable bool
@@ -110,6 +116,9 @@ func (u *Updater) GetStatus() *UpdateStatus {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	s := &UpdateStatus{
+		CurrentVersion:     version.Version,
+		CurrentBuildDate:   version.BuildDate,
+		LatestVersion:      u.latestVersion,
 		CurrentDigest:      u.short(u.currentDigest),
 		LatestDigest:       u.short(u.latestDigest),
 		UpdateAvailable:    u.updateAvailable,
@@ -138,13 +147,14 @@ func (u *Updater) CheckForUpdate(ctx context.Context) (*UpdateStatus, error) {
 		u.mu.Unlock()
 	}()
 
-	digest, err := u.fetchLatestDigest(ctx)
+	digest, latestVer, err := u.fetchLatestDigest(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("check update: %w", err)
 	}
 
 	u.mu.Lock()
 	u.latestDigest = digest
+	u.latestVersion = latestVer
 	u.lastCheckTime = time.Now()
 	u.updateAvailable = digest != "" && digest != u.currentDigest
 	u.mu.Unlock()
@@ -324,12 +334,12 @@ func (u *Updater) getCurrentDigest() string {
 	return inspect.Image
 }
 
-func (u *Updater) fetchLatestDigest(ctx context.Context) (string, error) {
+func (u *Updater) fetchLatestDigest(ctx context.Context) (string, string, error) {
 	tokenURL := "https://ghcr.io/token?scope=repository:twolfekc/floodtest:pull"
 	req, _ := http.NewRequestWithContext(ctx, "GET", tokenURL, nil)
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	defer resp.Body.Close()
 	var tok struct {
@@ -337,22 +347,35 @@ func (u *Updater) fetchLatestDigest(ctx context.Context) (string, error) {
 	}
 	json.NewDecoder(resp.Body).Decode(&tok)
 
+	// GET (not HEAD) the manifest so we can read annotations/labels for version.
 	mURL := "https://ghcr.io/v2/twolfekc/floodtest/manifests/latest"
-	req, _ = http.NewRequestWithContext(ctx, "HEAD", mURL, nil)
+	req, _ = http.NewRequestWithContext(ctx, "GET", mURL, nil)
 	req.Header.Set("Authorization", "Bearer "+tok.Token)
 	req.Header.Set("Accept", "application/vnd.oci.image.index.v1+json, application/vnd.docker.distribution.manifest.list.v2+json, application/vnd.docker.distribution.manifest.v2+json")
 
 	resp, err = http.DefaultClient.Do(req)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 	defer resp.Body.Close()
 
 	digest := resp.Header.Get("Docker-Content-Digest")
 	if digest == "" {
-		return "", fmt.Errorf("no digest in response")
+		return "", "", fmt.Errorf("no digest in response")
 	}
-	return digest, nil
+
+	// Try to extract version from OCI annotations in the manifest.
+	var latestVer string
+	var manifest struct {
+		Annotations map[string]string `json:"annotations"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&manifest); err == nil {
+		if v, ok := manifest.Annotations["org.opencontainers.image.version"]; ok {
+			latestVer = v
+		}
+	}
+
+	return digest, latestVer, nil
 }
 
 func (u *Updater) dataVolumeName(ctx context.Context) string {
