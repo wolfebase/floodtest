@@ -9,6 +9,7 @@ export default function Settings() {
   const [testStatus, setTestStatus] = useState<'idle' | 'testing' | 'success' | 'error'>('idle')
   const [testMessage, setTestMessage] = useState('')
   const [newServerUrl, setNewServerUrl] = useState('')
+  const [newUploadEndpoint, setNewUploadEndpoint] = useState('')
 
   useEffect(() => {
     api
@@ -84,6 +85,17 @@ export default function Settings() {
     })
   }
 
+  const addUploadEndpoint = () => {
+    if (!settings || !newUploadEndpoint.trim()) return
+    update({ uploadEndpoints: [...settings.uploadEndpoints, newUploadEndpoint.trim()] })
+    setNewUploadEndpoint('')
+  }
+
+  const removeUploadEndpoint = (index: number) => {
+    if (!settings) return
+    update({ uploadEndpoints: settings.uploadEndpoints.filter((_, i) => i !== index) })
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
@@ -109,99 +121,194 @@ export default function Settings() {
     <div className="space-y-6">
       <h2 className="text-2xl font-bold text-white">Settings</h2>
 
-      {/* B2 Configuration */}
+      {/* Upload Configuration */}
       <div className={sectionClass}>
         <h3 className="text-lg font-semibold text-white mb-4">
-          B2 Configuration
+          Upload Configuration
         </h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div>
-            <label className={labelClass}>Key ID</label>
-            <input
-              type="text"
-              value={settings.b2KeyId}
-              onChange={(e) => update({ b2KeyId: e.target.value })}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label className={labelClass}>Application Key</label>
-            <input
-              type="password"
-              value={settings.b2AppKey}
-              onChange={(e) => update({ b2AppKey: e.target.value })}
-              className={inputClass}
-            />
-          </div>
-          <div>
-            <label className={labelClass}>Bucket Name</label>
-            <input
-              type="text"
-              value={settings.b2BucketName}
-              onChange={(e) => update({ b2BucketName: e.target.value })}
-              className={inputClass}
-            />
-          </div>
-          <div className="md:col-span-2">
-            <label className={labelClass}>S3 Endpoint</label>
-            <p className="text-xs text-gray-500 mb-2">Must match your B2 account. Check your B2 dashboard → Buckets → Endpoint column.</p>
-            {(() => {
-              const knownEndpoints = [
-                'https://s3.us-west-000.backblazeb2.com',
-                'https://s3.us-west-001.backblazeb2.com',
-                'https://s3.us-west-002.backblazeb2.com',
-                'https://s3.us-west-004.backblazeb2.com',
-                'https://s3.us-east-005.backblazeb2.com',
-              ]
-              const isKnown = knownEndpoints.includes(settings.b2Endpoint)
-              return (
-                <div className="space-y-2">
-                  <select
-                    value={isKnown ? settings.b2Endpoint : '__custom__'}
-                    onChange={(e) => {
-                      if (e.target.value !== '__custom__') {
-                        update({ b2Endpoint: e.target.value })
-                      } else {
-                        update({ b2Endpoint: '' })
-                      }
-                    }}
-                    className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  >
-                    <option value="https://s3.us-west-000.backblazeb2.com">us-west-000 — s3.us-west-000.backblazeb2.com</option>
-                    <option value="https://s3.us-west-001.backblazeb2.com">us-west-001 — s3.us-west-001.backblazeb2.com</option>
-                    <option value="https://s3.us-west-002.backblazeb2.com">us-west-002 — s3.us-west-002.backblazeb2.com</option>
-                    <option value="https://s3.us-west-004.backblazeb2.com">us-west-004 — s3.us-west-004.backblazeb2.com</option>
-                    <option value="https://s3.us-east-005.backblazeb2.com">us-east-005 — s3.us-east-005.backblazeb2.com</option>
-                    <option value="__custom__">Custom endpoint...</option>
-                  </select>
-                  {!isKnown && (
-                    <input
-                      type="text"
-                      value={settings.b2Endpoint}
-                      onChange={(e) => update({ b2Endpoint: e.target.value })}
-                      placeholder="https://s3.xx-xxxx-xxx.backblazeb2.com"
-                      className={inputClass}
-                    />
-                  )}
-                </div>
-              )
-            })()}
-          </div>
-        </div>
-        <div className="flex items-center gap-3 mt-4">
-          <button
-            onClick={handleTestConnection}
-            disabled={testStatus === 'testing'}
-            className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+
+        {/* Upload Mode selector */}
+        <div className="mb-4">
+          <label className={labelClass}>Upload Mode</label>
+          <select
+            value={settings.uploadMode}
+            onChange={(e) => update({ uploadMode: e.target.value })}
+            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            {testStatus === 'testing' ? 'Testing...' : 'Test Connection'}
-          </button>
-          {testStatus === 'success' && (
-            <span className="text-sm text-green-400">{testMessage}</span>
-          )}
-          {testStatus === 'error' && (
-            <span className="text-sm text-red-400">{testMessage}</span>
-          )}
+            <option value="http">HTTP Discard (Free — no account needed)</option>
+            <option value="s3">S3-Compatible (Backblaze B2 / Cloudflare R2)</option>
+            <option value="local">Local Discard (testing only)</option>
+          </select>
+          <p className="text-xs text-gray-500 mt-1">
+            {settings.uploadMode === 'http' && 'Uploads random data to HTTP discard endpoints. No account required — measures real WAN upload throughput.'}
+            {settings.uploadMode === 's3' && 'Uploads to an S3-compatible bucket (e.g. Backblaze B2, Cloudflare R2). Requires credentials below.'}
+            {settings.uploadMode === 'local' && 'Uploads to this app\'s built-in discard endpoint. Does not measure real WAN bandwidth.'}
+          </p>
+        </div>
+
+        {/* S3 mode: B2 credential fields */}
+        {settings.uploadMode === 's3' && (
+          <div className="mb-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className={labelClass}>Key ID</label>
+                <input
+                  type="text"
+                  value={settings.b2KeyId}
+                  onChange={(e) => update({ b2KeyId: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Application Key</label>
+                <input
+                  type="password"
+                  value={settings.b2AppKey}
+                  onChange={(e) => update({ b2AppKey: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+              <div>
+                <label className={labelClass}>Bucket Name</label>
+                <input
+                  type="text"
+                  value={settings.b2BucketName}
+                  onChange={(e) => update({ b2BucketName: e.target.value })}
+                  className={inputClass}
+                />
+              </div>
+              <div className="md:col-span-2">
+                <label className={labelClass}>S3 Endpoint</label>
+                <p className="text-xs text-gray-500 mb-2">Must match your B2 account. Check your B2 dashboard → Buckets → Endpoint column.</p>
+                {(() => {
+                  const knownEndpoints = [
+                    'https://s3.us-west-000.backblazeb2.com',
+                    'https://s3.us-west-001.backblazeb2.com',
+                    'https://s3.us-west-002.backblazeb2.com',
+                    'https://s3.us-west-004.backblazeb2.com',
+                    'https://s3.us-east-005.backblazeb2.com',
+                  ]
+                  const isKnown = knownEndpoints.includes(settings.b2Endpoint)
+                  return (
+                    <div className="space-y-2">
+                      <select
+                        value={isKnown ? settings.b2Endpoint : '__custom__'}
+                        onChange={(e) => {
+                          if (e.target.value !== '__custom__') {
+                            update({ b2Endpoint: e.target.value })
+                          } else {
+                            update({ b2Endpoint: '' })
+                          }
+                        }}
+                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      >
+                        <option value="https://s3.us-west-000.backblazeb2.com">us-west-000 — s3.us-west-000.backblazeb2.com</option>
+                        <option value="https://s3.us-west-001.backblazeb2.com">us-west-001 — s3.us-west-001.backblazeb2.com</option>
+                        <option value="https://s3.us-west-002.backblazeb2.com">us-west-002 — s3.us-west-002.backblazeb2.com</option>
+                        <option value="https://s3.us-west-004.backblazeb2.com">us-west-004 — s3.us-west-004.backblazeb2.com</option>
+                        <option value="https://s3.us-east-005.backblazeb2.com">us-east-005 — s3.us-east-005.backblazeb2.com</option>
+                        <option value="__custom__">Custom endpoint...</option>
+                      </select>
+                      {!isKnown && (
+                        <input
+                          type="text"
+                          value={settings.b2Endpoint}
+                          onChange={(e) => update({ b2Endpoint: e.target.value })}
+                          placeholder="https://s3.xx-xxxx-xxx.backblazeb2.com"
+                          className={inputClass}
+                        />
+                      )}
+                    </div>
+                  )
+                })()}
+              </div>
+            </div>
+            <div className="flex items-center gap-3 mt-4">
+              <button
+                onClick={handleTestConnection}
+                disabled={testStatus === 'testing'}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+              >
+                {testStatus === 'testing' ? 'Testing...' : 'Test Connection'}
+              </button>
+              {testStatus === 'success' && (
+                <span className="text-sm text-green-400">{testMessage}</span>
+              )}
+              {testStatus === 'error' && (
+                <span className="text-sm text-red-400">{testMessage}</span>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* HTTP mode: upload endpoints list */}
+        {settings.uploadMode === 'http' && (
+          <div className="mb-4">
+            <label className={labelClass}>Upload Endpoints</label>
+            <div className="space-y-2 mb-4">
+              {settings.uploadEndpoints.length === 0 && (
+                <p className="text-sm text-gray-500">No upload endpoints configured</p>
+              )}
+              {settings.uploadEndpoints.map((url, index) => (
+                <div
+                  key={index}
+                  className="flex items-center gap-2 bg-gray-800 rounded-lg px-3 py-2"
+                >
+                  <span className="flex-1 text-sm text-white font-mono truncate">
+                    {url}
+                  </span>
+                  <button
+                    onClick={() => removeUploadEndpoint(index)}
+                    className="text-red-400 hover:text-red-300 text-sm font-medium shrink-0"
+                  >
+                    Remove
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={newUploadEndpoint}
+                onChange={(e) => setNewUploadEndpoint(e.target.value)}
+                placeholder="https://example.com/upload"
+                className={inputClass}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') addUploadEndpoint()
+                }}
+              />
+              <button
+                onClick={addUploadEndpoint}
+                disabled={!newUploadEndpoint.trim()}
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 shrink-0"
+              >
+                Add
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Local mode: info box */}
+        {settings.uploadMode === 'local' && (
+          <div className="mb-4 bg-gray-800 border border-gray-700 rounded-lg p-4">
+            <p className="text-sm text-gray-300">
+              Uploads to this app's built-in discard endpoint. Does not test real WAN upload bandwidth — only useful for testing the upload engine itself.
+            </p>
+          </div>
+        )}
+
+        {/* Chunk Size — shown for all modes */}
+        <div className="max-w-xs">
+          <label className={labelClass}>Chunk Size (MB)</label>
+          <input
+            type="number"
+            value={settings.uploadChunkSizeMb}
+            onChange={(e) =>
+              update({ uploadChunkSizeMb: Number(e.target.value) })
+            }
+            min={1}
+            className={inputClass}
+          />
         </div>
       </div>
 
@@ -264,23 +371,6 @@ export default function Settings() {
               className={inputClass}
             />
           </div>
-        </div>
-      </div>
-
-      {/* Upload */}
-      <div className={sectionClass}>
-        <h3 className="text-lg font-semibold text-white mb-4">Upload</h3>
-        <div className="max-w-xs">
-          <label className={labelClass}>Chunk Size (MB)</label>
-          <input
-            type="number"
-            value={settings.uploadChunkSizeMb}
-            onChange={(e) =>
-              update({ uploadChunkSizeMb: Number(e.target.value) })
-            }
-            min={1}
-            className={inputClass}
-          />
         </div>
       </div>
 
