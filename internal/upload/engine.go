@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -275,6 +276,16 @@ func (e *Engine) uploadLoop(ctx context.Context) {
 			pr.CloseWithError(err)
 			if ctx.Err() != nil {
 				return
+			}
+			errStr := err.Error()
+			if strings.Contains(errStr, "cap exceeded") || strings.Contains(errStr, "AccessDenied") {
+				log.Printf("upload: storage cap exceeded — pausing uploads for 5 minutes")
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(5 * time.Minute):
+				}
+				continue
 			}
 			log.Printf("upload: PutObject error: %v", err)
 			time.Sleep(2 * time.Second)
