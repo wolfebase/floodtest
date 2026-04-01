@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -33,6 +34,7 @@ type App struct {
 	GetCurrentUploadBps     func() int64
 	TestB2Connection        func(keyID, appKey, bucket, endpoint string) (bool, string)
 	GetServerHealth         func() interface{}
+	GetUploadServerHealth   func() interface{}
 	RunSpeedTest            func(ctx context.Context) interface{}
 	GetUpdateStatus         func() interface{}
 	CheckForUpdate          func(ctx context.Context) (interface{}, error)
@@ -372,6 +374,18 @@ func (a *App) HandleUpdateSettings(w http.ResponseWriter, r *http.Request) {
 			cfg.DownloadServers = servers
 		}
 	}
+	if v, ok := updates["uploadMode"]; ok {
+		cfg.UploadMode = fmt.Sprint(v)
+	}
+	if v, ok := updates["uploadEndpoints"]; ok {
+		if arr, ok := v.([]interface{}); ok {
+			endpoints := make([]string, 0, len(arr))
+			for _, s := range arr {
+				endpoints = append(endpoints, fmt.Sprint(s))
+			}
+			cfg.UploadEndpoints = endpoints
+		}
+	}
 
 	if err := cfg.Save(); err != nil {
 		writeError(w, 500, err.Error())
@@ -408,6 +422,20 @@ func (a *App) HandleTestB2(w http.ResponseWriter, r *http.Request) {
 func (a *App) HandleServerHealth(w http.ResponseWriter, r *http.Request) {
 	if a.GetServerHealth != nil {
 		writeJSON(w, a.GetServerHealth())
+	} else {
+		writeJSON(w, []struct{}{})
+	}
+}
+
+func (a *App) HandleUploadSink(w http.ResponseWriter, r *http.Request) {
+	io.Copy(io.Discard, r.Body)
+	r.Body.Close()
+	w.WriteHeader(http.StatusOK)
+}
+
+func (a *App) HandleUploadServerHealth(w http.ResponseWriter, r *http.Request) {
+	if a.GetUploadServerHealth != nil {
+		writeJSON(w, a.GetUploadServerHealth())
 	} else {
 		writeJSON(w, []struct{}{})
 	}
