@@ -1,0 +1,268 @@
+package upload
+
+import (
+	"sync"
+	"sync/atomic"
+	"time"
+)
+
+const (
+	uploadUnhealthyCooldown = 30 * time.Second
+	uploadMaxCooldown       = 5 * time.Minute
+)
+
+// UploadServerHealth contains the current health status of an upload server,
+// exported for API consumption.
+type UploadServerHealth struct {
+	URL                 string    `json:"url"`
+	Healthy             bool      `json:"healthy"`
+	ConsecutiveFailures int       `json:"consecutiveFailures"`
+	TotalFailures       int       `json:"totalFailures"`
+	TotalUploads        int       `json:"totalUploads"`
+	LastError           string    `json:"lastError,omitempty"`
+	LastErrorTime       time.Time `json:"lastErrorTime,omitempty"`
+	UnhealthyUntil      time.Time `json:"unhealthyUntil,omitempty"`
+	BytesUploaded       int64     `json:"bytesUploaded"`
+	ActiveStreams       int32     `json:"activeStreams"`
+	Status              string    `json:"status"`
+}
+
+// uploadServer represents a single upload endpoint with health tracking.
+type uploadServer struct {
+	url                 string
+	healthy             bool
+	unhealthyUntil      time.Time
+	consecutiveFailures int
+	totalFailures       int
+	totalUploads        int
+	lastError           string
+	lastErrorTime       time.Time
+	bytesUploaded       int64
+	activeStreams       int32
+}
+
+// UploadServerList manages a thread-safe list of upload servers
+// with per-server health tracking and round-robin selection.
+type UploadServerList struct {
+	mu      sync.RWMutex
+	servers []uploadServer
+	index   int
+}
+
+// NewUploadServerList creates an UploadServerList from the given URLs.
+// All servers start in the healthy state.
+func NewUploadServerList(urls []string) *UploadServerList {
+	servers := make([]uploadServer, len(urls))
+	for i, u := range urls {
+		servers[i] = uploadServer{url: u, healthy: true}
+	}
+	return &UploadServerList{servers: servers}
+}
+
+// Next returns the URL of the next healthy server using round-robin selection.
+//
+// Selection strategy:
+//  1. Promote any servers whose cooldown has expired.
+//  2. Round-robin among healthy servers.
+//  3. If all servers are unhealthy, return the one whose cooldown expires soonest.
+func (sl *UploadServerList) Next() string {
+	sl.mu.Lock()
+	defer sl.mu.Unlock()
+
+	if len(sl.servers) == 0 {
+		return ""
+	}
+
+	now := time.Now()
+
+	// Phase 1: promote servers whose cooldown expired.
+	for i := range sl.servers {
+		s := &sl.servers[i]
+		if !s.healthy && now.After(s.unhealthyUntil) {
+			s.healthy = true
+			s.unhealthyUntil = time.Time{}
+			s.consecutiveFailures = 0
+		}
+	}
+
+	// Phase 2: round-robin among healthy servers.
+	start := sl.index
+	for i := 0; i < len(sl.servers); i++ {
+		idx := (start + i) % len(sl.servers)
+		s := &sl.servers[idx]
+		if s.healthy {
+			sl.index = (idx + 1) % len(sl.servers)
+			return s.url
+		}
+	}
+
+	// Phase 3: all unhealthy — pick the one with soonest recovery.
+	bestIdx := 0
+	bestTime := sl.servers[0].unhealthyUntil
+	for i := 1; i < len(sl.servers); i++ {
+		if sl.servers[i].unhealthyUntil.Before(bestTime) {
+			bestIdx = i
+			bestTime = sl.servers[i].unhealthyUntil
+		}
+	}
+	sl.index = (bestIdx + 1) % len(sl.servers)
+	return sl.servers[bestIdx].url
+}
+
+// MarkUnhealthy marks the server identified by url as unhealthy.
+// Cooldown increases with consecutive failures: 30s * 2^(failures-1), capped at 5min.
+func (sl *UploadServerList) MarkUnhealthy(url, errMsg string) {
+	sl.mu.Lock()
+	defer sl.mu.Unlock()
+
+	for i := range sl.servers {
+		if sl.servers[i].url == url {
+			s := &sl.servers[i]
+			s.healthy = false
+			s.consecutiveFailures++
+			s.totalFailures++
+			s.lastError = errMsg
+			s.lastErrorTime = time.Now()
+
+			// Exponential backoff: 30s * 2^(failures-1), capped at 5min
+			cooldown := uploadUnhealthyCooldown
+			for j := 1; j < s.consecutiveFailures && cooldown < uploadMaxCooldown; j++ {
+				cooldown *= 2
+			}
+			if cooldown > uploadMaxCooldown {
+				cooldown = uploadMaxCooldown
+			}
+			s.unhealthyUntil = time.Now().Add(cooldown)
+			return
+		}
+	}
+}
+
+// MarkSuccess records a successful upload completion from a server.
+// Resets consecutive failures and increments the upload counter.
+func (sl *UploadServerList) MarkSuccess(url string) {
+	sl.mu.Lock()
+	defer sl.mu.Unlock()
+
+	for i := range sl.servers {
+		if sl.servers[i].url == url {
+			sl.servers[i].consecutiveFailures = 0
+			sl.servers[i].totalUploads++
+			return
+		}
+	}
+}
+
+// AddBytes incrementally updates the bytes uploaded counter for a server.
+// Called during streaming to provide real-time progress in the health UI.
+func (sl *UploadServerList) AddBytes(url string, n int64) {
+	sl.mu.Lock()
+	defer sl.mu.Unlock()
+	for i := range sl.servers {
+		if sl.servers[i].url == url {
+			sl.servers[i].bytesUploaded += n
+			return
+		}
+	}
+}
+
+// IncrementStreams atomically adds one to the active stream count for a server.
+func (sl *UploadServerList) IncrementStreams(url string) {
+	sl.mu.RLock()
+	defer sl.mu.RUnlock()
+
+	for i := range sl.servers {
+		if sl.servers[i].url == url {
+			atomic.AddInt32(&sl.servers[i].activeStreams, 1)
+			return
+		}
+	}
+}
+
+// DecrementStreams atomically subtracts one from the active stream count for a server.
+func (sl *UploadServerList) DecrementStreams(url string) {
+	sl.mu.RLock()
+	defer sl.mu.RUnlock()
+
+	for i := range sl.servers {
+		if sl.servers[i].url == url {
+			atomic.AddInt32(&sl.servers[i].activeStreams, -1)
+			return
+		}
+	}
+}
+
+// HealthStatus returns the current health of all upload servers for API/UI consumption.
+func (sl *UploadServerList) HealthStatus() []UploadServerHealth {
+	sl.mu.RLock()
+	defer sl.mu.RUnlock()
+
+	now := time.Now()
+	result := make([]UploadServerHealth, len(sl.servers))
+	for i, s := range sl.servers {
+		healthy := s.healthy
+		if !healthy && now.After(s.unhealthyUntil) {
+			healthy = true // cooldown expired
+		}
+
+		status := "healthy"
+		if !s.healthy {
+			if s.consecutiveFailures >= 5 {
+				status = "failed"
+			} else if now.Before(s.unhealthyUntil) {
+				status = "cooldown"
+			}
+		}
+
+		result[i] = UploadServerHealth{
+			URL:                 s.url,
+			Healthy:             healthy,
+			ConsecutiveFailures: s.consecutiveFailures,
+			TotalFailures:       s.totalFailures,
+			TotalUploads:        s.totalUploads,
+			LastError:           s.lastError,
+			LastErrorTime:       s.lastErrorTime,
+			UnhealthyUntil:      s.unhealthyUntil,
+			BytesUploaded:       s.bytesUploaded,
+			ActiveStreams:       atomic.LoadInt32(&sl.servers[i].activeStreams),
+			Status:              status,
+		}
+	}
+	return result
+}
+
+// UpdateServers replaces the entire server list with the given URLs.
+// All new servers start healthy and the round-robin index is reset.
+func (sl *UploadServerList) UpdateServers(urls []string) {
+	sl.mu.Lock()
+	defer sl.mu.Unlock()
+
+	servers := make([]uploadServer, len(urls))
+	for i, u := range urls {
+		servers[i] = uploadServer{url: u, healthy: true}
+	}
+	sl.servers = servers
+	sl.index = 0
+}
+
+// HealthyCount returns the number of currently healthy servers.
+func (sl *UploadServerList) HealthyCount() int {
+	sl.mu.RLock()
+	defer sl.mu.RUnlock()
+
+	now := time.Now()
+	count := 0
+	for _, s := range sl.servers {
+		if s.healthy || now.After(s.unhealthyUntil) {
+			count++
+		}
+	}
+	return count
+}
+
+// TotalCount returns the total number of configured upload servers.
+func (sl *UploadServerList) TotalCount() int {
+	sl.mu.RLock()
+	defer sl.mu.RUnlock()
+	return len(sl.servers)
+}
