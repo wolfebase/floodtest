@@ -7,6 +7,7 @@ import Charts from './components/Charts'
 import SchedulePage from './components/Schedule'
 import SettingsPage from './components/Settings'
 import SetupWizard from './components/SetupWizard'
+import UpdatesPage from './components/Updates'
 
 function NavBar() {
   const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -30,6 +31,7 @@ function NavBar() {
       <NavLink to="/charts" className={linkClass}>Charts</NavLink>
       <NavLink to="/schedule" className={linkClass}>Schedule</NavLink>
       <NavLink to="/settings" className={linkClass}>Settings</NavLink>
+      <NavLink to="/updates" className={linkClass}>Updates</NavLink>
     </nav>
   )
 }
@@ -70,6 +72,7 @@ export default function App() {
             <Route path="/charts" element={<Charts />} />
             <Route path="/schedule" element={<SchedulePage />} />
             <Route path="/settings" element={<SettingsPage />} />
+            <Route path="/updates" element={<UpdatesPage />} />
           </Routes>
         </main>
       </div>

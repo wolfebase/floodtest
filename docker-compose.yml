@@ -7,6 +7,7 @@ services:
       - "${WEB_PORT:-7860}:7860"
     volumes:
       - floodtest-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - B2_KEY_ID=${B2_KEY_ID:-}
       - B2_APP_KEY=${B2_APP_KEY:-}
@@ -16,6 +17,7 @@ services:
       - DEFAULT_DOWNLOAD_SPEED=${DEFAULT_DOWNLOAD_SPEED:-5000}
       - DEFAULT_UPLOAD_SPEED=${DEFAULT_UPLOAD_SPEED:-5000}
       - DATA_DIR=/data
+      - COMPOSE_DIR=/opt/floodtest
 
 volumes:
   floodtest-data:

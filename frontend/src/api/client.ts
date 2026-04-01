@@ -84,6 +84,28 @@ export interface ServerHealth {
   bytesDownloaded: number
 }
 
+export interface UpdateStatus {
+  currentDigest: string
+  latestDigest?: string
+  updateAvailable: boolean
+  lastCheckTime?: string
+  lastUpdateTime?: string
+  autoUpdateEnabled: boolean
+  autoUpdateSchedule: string
+  checking: boolean
+  updating: boolean
+  dockerAvailable: boolean
+}
+
+export interface UpdateHistoryEntry {
+  id: number
+  previousDigest: string
+  newDigest: string
+  status: string
+  errorMessage?: string
+  createdAt: string
+}
+
 export const api = {
   getStatus: () => request<Status>('/api/status'),
   start: (downloadMbps?: number, uploadMbps?: number) =>
@@ -121,4 +143,15 @@ export const api = {
   testB2: () => request<{ success: boolean; message: string }>('/api/settings/test-b2', { method: 'POST' }),
   isSetupRequired: () => request<{ required: boolean }>('/api/settings/setup-required'),
   getServerHealth: () => request<ServerHealth[]>('/api/server-health'),
+
+  // Updates
+  getUpdateStatus: () => request<UpdateStatus>('/api/updates/status'),
+  checkForUpdates: () => request<UpdateStatus>('/api/updates/check', { method: 'POST' }),
+  applyUpdate: () => request<{ status: string }>('/api/updates/apply', { method: 'POST' }),
+  setAutoUpdate: (enabled: boolean, schedule: string) =>
+    request<void>('/api/updates/auto', {
+      method: 'POST',
+      body: JSON.stringify({ enabled, schedule }),
+    }),
+  getUpdateHistory: () => request<UpdateHistoryEntry[]>('/api/updates/history'),
 }

@@ -28,6 +28,12 @@ func NewRouter(app *App, frontend embed.FS) http.Handler {
 	mux.HandleFunc("GET /api/settings/setup-required", app.HandleSetupRequired)
 	mux.HandleFunc("GET /api/server-health", app.HandleServerHealth)
 
+	mux.HandleFunc("GET /api/updates/status", app.HandleUpdateStatus)
+	mux.HandleFunc("POST /api/updates/check", app.HandleCheckUpdate)
+	mux.HandleFunc("POST /api/updates/apply", app.HandleApplyUpdate)
+	mux.HandleFunc("POST /api/updates/auto", app.HandleSetAutoUpdate)
+	mux.HandleFunc("GET /api/updates/history", app.HandleUpdateHistory)
+
 	// WebSocket
 	mux.HandleFunc("/ws", app.Hub.HandleWs)
 

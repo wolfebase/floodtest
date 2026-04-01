@@ -19,6 +19,7 @@ import (
 	"wansaturator/internal/scheduler"
 	"wansaturator/internal/stats"
 	"wansaturator/internal/throttle"
+	"wansaturator/internal/updater"
 	"wansaturator/internal/upload"
 
 	"github.com/aws/aws-sdk-go-v2/service/s3"
@@ -220,6 +221,19 @@ func main() {
 		},
 	}
 
+	// Initialize updater
+	upd := updater.New(database)
+	upd.Start(ctx)
+	app.GetUpdateStatus = func() interface{} { return upd.GetStatus() }
+	app.CheckForUpdate = func(ctx context.Context) (interface{}, error) {
+		return upd.CheckForUpdate(ctx)
+	}
+	app.ApplyUpdate = func(ctx context.Context) error { return upd.ApplyUpdate(ctx) }
+	app.SetAutoUpdate = func(enabled bool, schedule string) error {
+		return upd.SetAutoUpdate(enabled, schedule)
+	}
+	app.GetUpdateHistory = func() interface{} { return upd.GetHistory() }
+
 	router := api.NewRouter(app, frontend)
 
 	// WebSocket broadcast goroutine
@@ -284,6 +298,7 @@ func main() {
 	sched.Stop()
 	detector.Stop()
 	collector.Stop()
+	upd.Stop()
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer shutdownCancel()

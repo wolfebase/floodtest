@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"fmt"
@@ -32,6 +33,11 @@ type App struct {
 	GetCurrentUploadBps     func() int64
 	TestB2Connection        func(keyID, appKey, bucket, endpoint string) (bool, string)
 	GetServerHealth         func() interface{}
+	GetUpdateStatus         func() interface{}
+	CheckForUpdate          func(ctx context.Context) (interface{}, error)
+	ApplyUpdate             func(ctx context.Context) error
+	SetAutoUpdate           func(enabled bool, schedule string) error
+	GetUpdateHistory        func() interface{}
 }
 
 func writeJSON(w http.ResponseWriter, v interface{}) {
@@ -422,6 +428,62 @@ func toInt(v interface{}) (int, error) {
 		return val, nil
 	default:
 		return 0, fmt.Errorf("cannot convert %T to int", v)
+	}
+}
+
+func (a *App) HandleUpdateStatus(w http.ResponseWriter, r *http.Request) {
+	if a.GetUpdateStatus != nil {
+		writeJSON(w, a.GetUpdateStatus())
+	} else {
+		writeJSON(w, map[string]interface{}{"dockerAvailable": false})
+	}
+}
+
+func (a *App) HandleCheckUpdate(w http.ResponseWriter, r *http.Request) {
+	if a.CheckForUpdate == nil {
+		writeError(w, 503, "updates not available")
+		return
+	}
+	status, err := a.CheckForUpdate(r.Context())
+	if err != nil {
+		writeError(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, status)
+}
+
+func (a *App) HandleApplyUpdate(w http.ResponseWriter, r *http.Request) {
+	if a.ApplyUpdate == nil {
+		writeError(w, 503, "updates not available")
+		return
+	}
+	if err := a.ApplyUpdate(r.Context()); err != nil {
+		writeError(w, 500, err.Error())
+		return
+	}
+	writeJSON(w, map[string]string{"status": "updating"})
+}
+
+func (a *App) HandleSetAutoUpdate(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		Enabled  bool   `json:"enabled"`
+		Schedule string `json:"schedule"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeError(w, 400, "invalid request")
+		return
+	}
+	if a.SetAutoUpdate != nil {
+		a.SetAutoUpdate(req.Enabled, req.Schedule)
+	}
+	writeJSON(w, map[string]string{"status": "saved"})
+}
+
+func (a *App) HandleUpdateHistory(w http.ResponseWriter, r *http.Request) {
+	if a.GetUpdateHistory != nil {
+		writeJSON(w, a.GetUpdateHistory())
+	} else {
+		writeJSON(w, []struct{}{})
 	}
 }
 

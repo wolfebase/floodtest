@@ -62,8 +62,10 @@ services:
       - "7860:7860"
     volumes:
       - floodtest-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
     environment:
       - DATA_DIR=/data
+      - COMPOSE_DIR=/opt/floodtest
 
 volumes:
   floodtest-data:

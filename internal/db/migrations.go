@@ -40,6 +40,15 @@ CREATE TABLE IF NOT EXISTS throttle_events (
     resolved_at DATETIME
 );
 
+CREATE TABLE IF NOT EXISTS update_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    previous_digest TEXT NOT NULL,
+    new_digest TEXT NOT NULL,
+    status TEXT NOT NULL,
+    error_message TEXT,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE INDEX IF NOT EXISTS idx_throughput_timestamp ON throughput_history(timestamp);
 CREATE INDEX IF NOT EXISTS idx_throttle_timestamp ON throttle_events(timestamp);
 `

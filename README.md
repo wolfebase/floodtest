@@ -29,6 +29,7 @@ FloodTest generates **real WAN traffic** that registers on your ISP's usage mete
 | :green_circle: | **Server health** — See which download servers are healthy, blocked, or cooling down |
 | :calendar: | **Scheduler** — Automate test runs by day and time |
 | :control_knobs: | **Rate limiting** — Set precise bandwidth targets per direction |
+| :arrows_counterclockwise: | **Auto-updates** — Check for updates in the UI, schedule automatic updates (daily/weekly/monthly) |
 | :package: | **Self-contained** — Single 23MB Docker container, no external dependencies |
 
 ---
