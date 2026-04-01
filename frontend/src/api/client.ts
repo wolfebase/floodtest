@@ -70,6 +70,8 @@ export interface Settings {
   throttleThresholdPct: number
   throttleWindowMin: number
   downloadServers: string[]
+  uploadMode: string
+  uploadEndpoints: string[]
 }
 
 export interface ServerHealth {
@@ -94,6 +96,20 @@ export interface SpeedTestResult {
   speedBps: number
   error?: string
   ok: boolean
+}
+
+export interface UploadServerHealth {
+  url: string
+  healthy: boolean
+  consecutiveFailures: number
+  totalFailures: number
+  totalUploads: number
+  lastError?: string
+  lastErrorTime?: string
+  unhealthyUntil?: string
+  bytesUploaded: number
+  activeStreams: number
+  status: string
 }
 
 export interface UpdateStatus {
@@ -156,6 +172,7 @@ export const api = {
   isSetupRequired: () => request<{ required: boolean }>('/api/settings/setup-required'),
   getServerHealth: () => request<ServerHealth[]>('/api/server-health'),
   runSpeedTest: () => request<SpeedTestResult[]>('/api/speed-test', { method: 'POST' }),
+  getUploadServerHealth: () => request<UploadServerHealth[]>('/api/upload-server-health'),
 
   // Updates
   getUpdateStatus: () => request<UpdateStatus>('/api/updates/status'),
