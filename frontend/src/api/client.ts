@@ -75,6 +75,7 @@ export interface Settings {
   downloadServers: string[]
   uploadMode: string
   uploadEndpoints: string[]
+  autoMode: string
 }
 
 export interface ServerHealth {
