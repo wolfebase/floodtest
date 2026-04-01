@@ -156,11 +156,11 @@ func (sl *UploadServerList) MarkSuccess(url string) {
 // AddBytes incrementally updates the bytes uploaded counter for a server.
 // Called during streaming to provide real-time progress in the health UI.
 func (sl *UploadServerList) AddBytes(url string, n int64) {
-	sl.mu.Lock()
-	defer sl.mu.Unlock()
+	sl.mu.RLock()
+	defer sl.mu.RUnlock()
 	for i := range sl.servers {
 		if sl.servers[i].url == url {
-			sl.servers[i].bytesUploaded += n
+			atomic.AddInt64(&sl.servers[i].bytesUploaded, n)
 			return
 		}
 	}
@@ -223,7 +223,7 @@ func (sl *UploadServerList) HealthStatus() []UploadServerHealth {
 			LastError:           s.lastError,
 			LastErrorTime:       s.lastErrorTime,
 			UnhealthyUntil:      s.unhealthyUntil,
-			BytesUploaded:       s.bytesUploaded,
+			BytesUploaded:       atomic.LoadInt64(&sl.servers[i].bytesUploaded),
 			ActiveStreams:       atomic.LoadInt32(&sl.servers[i].activeStreams),
 			Status:              status,
 		}

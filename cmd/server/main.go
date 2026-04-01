@@ -147,12 +147,9 @@ func main() {
 		dlEngine.Start(ctx)
 		log.Printf("Download engine started: %dMbps, %d streams", dlMbps, cfgNow.DownloadConcurrency)
 
-		// Stop HTTP upload engine too (in case switching modes)
-		httpUploadEngine.Stop()
-
 		// Start upload engine based on mode
 		switch cfgNow.UploadMode {
-		case "s3":
+		case config.UploadModeS3:
 			ulEngine.UpdateCredentials(cfgNow.B2KeyID, cfgNow.B2AppKey, cfgNow.B2BucketName, cfgNow.B2Endpoint)
 			ulEngine.SetChunkSize(int64(cfgNow.UploadChunkSizeMB) * 1024 * 1024)
 			if cfgNow.B2KeyID != "" && cfgNow.B2AppKey != "" && cfgNow.B2BucketName != "" {
@@ -164,29 +161,21 @@ func main() {
 			} else {
 				log.Println("Upload engine (S3) skipped: credentials not configured")
 			}
-		case "http":
-			uploadServerList.UpdateServers(cfgNow.UploadEndpoints)
-			httpUploadEngine.SetConcurrency(cfgNow.UploadConcurrency)
-			httpUploadEngine.SetChunkSize(int64(cfgNow.UploadChunkSizeMB) * 1024 * 1024)
-			httpUploadEngine.SetRateLimit(mbpsToBps(ulMbps))
-			httpUploadEngine.SetTargetBps(int64(ulMbps) * 1_000_000)
-			if err := httpUploadEngine.Start(ctx); err != nil {
-				log.Printf("Upload engine (HTTP) failed to start: %v", err)
+		case config.UploadModeHTTP, config.UploadModeLocal:
+			if cfgNow.UploadMode == config.UploadModeLocal {
+				uploadServerList.UpdateServers([]string{fmt.Sprintf("http://localhost:%d/api/upload-sink", port)})
 			} else {
-				log.Printf("Upload engine (HTTP) started: %dMbps, %d streams, %d endpoints",
-					ulMbps, cfgNow.UploadConcurrency, len(cfgNow.UploadEndpoints))
+				uploadServerList.UpdateServers(cfgNow.UploadEndpoints)
 			}
-		case "local":
-			localEndpoints := []string{fmt.Sprintf("http://localhost:%d/api/upload-sink", port)}
-			uploadServerList.UpdateServers(localEndpoints)
 			httpUploadEngine.SetConcurrency(cfgNow.UploadConcurrency)
 			httpUploadEngine.SetChunkSize(int64(cfgNow.UploadChunkSizeMB) * 1024 * 1024)
 			httpUploadEngine.SetRateLimit(mbpsToBps(ulMbps))
 			httpUploadEngine.SetTargetBps(int64(ulMbps) * 1_000_000)
 			if err := httpUploadEngine.Start(ctx); err != nil {
-				log.Printf("Upload engine (local) failed to start: %v", err)
+				log.Printf("Upload engine (%s) failed to start: %v", cfgNow.UploadMode, err)
 			} else {
-				log.Printf("Upload engine (local discard) started: %dMbps", ulMbps)
+				log.Printf("Upload engine (%s) started: %dMbps, %d streams",
+					cfgNow.UploadMode, ulMbps, cfgNow.UploadConcurrency)
 			}
 		default:
 			log.Printf("Upload engine skipped: unknown mode %q", cfgNow.UploadMode)

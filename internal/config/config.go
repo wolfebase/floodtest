@@ -11,6 +11,12 @@ import (
 	"wansaturator/internal/download"
 )
 
+const (
+	UploadModeS3    = "s3"
+	UploadModeHTTP  = "http"
+	UploadModeLocal = "local"
+)
+
 type Config struct {
 	mu sync.RWMutex `json:"-"`
 	DB *sql.DB      `json:"-"`

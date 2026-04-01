@@ -32,6 +32,7 @@ type HTTPEngine struct {
 	wg             sync.WaitGroup
 	mu             sync.Mutex
 	statsProvider  func() int64
+	client         *http.Client
 }
 
 // NewHTTPEngine creates an HTTPEngine. Call Start to begin uploading.
@@ -97,6 +98,7 @@ func (e *HTTPEngine) Start(ctx context.Context) error {
 	childCtx, cancel := context.WithCancel(ctx)
 	e.cancel = cancel
 	e.running.Store(true)
+	e.client = e.httpClient()
 
 	e.activeStreams.Store(0)
 	for i := 0; i < e.concurrency; i++ {
@@ -135,7 +137,8 @@ func (e *HTTPEngine) launchStream(ctx context.Context) {
 
 // uploadLoop repeatedly selects a server and uploads random data until cancelled.
 func (e *HTTPEngine) uploadLoop(ctx context.Context) {
-	client := e.httpClient()
+	buf := make([]byte, 256*1024)
+	rand.Read(buf) // fill once with random data
 
 	for {
 		if ctx.Err() != nil {
@@ -154,7 +157,7 @@ func (e *HTTPEngine) uploadLoop(ctx context.Context) {
 		}
 
 		e.serverList.IncrementStreams(serverURL)
-		err := e.uploadTo(ctx, client, serverURL)
+		err := e.uploadTo(ctx, e.client, serverURL, buf)
 		e.serverList.DecrementStreams(serverURL)
 
 		if err != nil {
@@ -176,7 +179,8 @@ func (e *HTTPEngine) uploadLoop(ctx context.Context) {
 }
 
 // uploadTo performs a single HTTP POST of random data to the given server URL.
-func (e *HTTPEngine) uploadTo(ctx context.Context, client *http.Client, serverURL string) error {
+// buf must be a pre-filled random data buffer (reused across calls to avoid crypto/rand overhead).
+func (e *HTTPEngine) uploadTo(ctx context.Context, client *http.Client, serverURL string, buf []byte) error {
 	pr, pw := io.Pipe()
 
 	// Determine per-stream rate limit.
@@ -199,10 +203,9 @@ func (e *HTTPEngine) uploadTo(ctx context.Context, client *http.Client, serverUR
 		limiter = rate.NewLimiter(rate.Limit(perStream), burst)
 	}
 
-	// Writer goroutine: push random data into the pipe.
+	// Writer goroutine: push pre-filled random data into the pipe.
 	go func() {
 		defer pw.Close()
-		buf := make([]byte, 256*1024) // 256KB write buffer
 		var written int64
 		for written < chunkSize {
 			if ctx.Err() != nil {
@@ -214,11 +217,7 @@ func (e *HTTPEngine) uploadTo(ctx context.Context, client *http.Client, serverUR
 				toWrite = remaining
 			}
 
-			n, err := rand.Read(buf[:toWrite])
-			if err != nil {
-				pw.CloseWithError(fmt.Errorf("rand read: %w", err))
-				return
-			}
+			n := int(toWrite) // buf is already filled with random data
 
 			if limiter != nil {
 				if err := limiter.WaitN(ctx, n); err != nil {
@@ -293,7 +292,7 @@ func (e *HTTPEngine) httpClient() *http.Client {
 			Timeout: 30 * time.Second,
 		}).DialContext,
 		TLSHandshakeTimeout: 30 * time.Second,
-		MaxIdleConnsPerHost: 4,
+		MaxIdleConnsPerHost: 64,
 	}
 	return &http.Client{
 		Transport: transport,
