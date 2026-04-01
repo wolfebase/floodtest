@@ -32,10 +32,18 @@ type Config struct {
 	ThrottleWindowMin    int `json:"throttleWindowMin"`
 
 	DownloadServers []string `json:"downloadServers"`
+
+	UploadMode      string   `json:"uploadMode"`      // "s3", "http", "local"
+	UploadEndpoints []string `json:"uploadEndpoints"`
 }
 
 // DefaultDownloadServers is the canonical server list from the download package.
 var DefaultDownloadServers = download.DefaultServers
+
+var DefaultUploadEndpoints = []string{
+	"https://speed.cloudflare.com/__up",
+	"http://speedtest.tele2.net/upload.php",
+}
 
 func New(database *sql.DB) *Config {
 	c := &Config{
@@ -49,6 +57,8 @@ func New(database *sql.DB) *Config {
 		ThrottleThresholdPct: 60,
 		ThrottleWindowMin:    5,
 		DownloadServers:      DefaultDownloadServers,
+		UploadMode:           "http",
+		UploadEndpoints:      DefaultUploadEndpoints,
 		B2KeyID:              os.Getenv("B2_KEY_ID"),
 		B2AppKey:             os.Getenv("B2_APP_KEY"),
 		B2BucketName:         os.Getenv("B2_BUCKET_NAME"),
@@ -123,6 +133,15 @@ func (c *Config) loadFromDB() {
 			}
 		}
 	}
+	if v, _ := db.GetSetting(c.DB, "upload_mode"); v != "" {
+		c.UploadMode = v
+	}
+	if v, _ := db.GetSetting(c.DB, "upload_endpoints"); v != "" {
+		var endpoints []string
+		if json.Unmarshal([]byte(v), &endpoints) == nil && len(endpoints) > 0 {
+			c.UploadEndpoints = endpoints
+		}
+	}
 }
 
 func (c *Config) Save() error {
@@ -141,9 +160,12 @@ func (c *Config) Save() error {
 		"upload_chunk_size_mb":  strconv.Itoa(c.UploadChunkSizeMB),
 		"throttle_threshold_pct": strconv.Itoa(c.ThrottleThresholdPct),
 		"throttle_window_min":   strconv.Itoa(c.ThrottleWindowMin),
+		"upload_mode":           c.UploadMode,
 	}
 	serversJSON, _ := json.Marshal(c.DownloadServers)
 	pairs["download_servers"] = string(serversJSON)
+	uploadEndpointsJSON, _ := json.Marshal(c.UploadEndpoints)
+	pairs["upload_endpoints"] = string(uploadEndpointsJSON)
 
 	for k, v := range pairs {
 		if err := db.SetSetting(c.DB, k, v); err != nil {
@@ -179,9 +201,7 @@ func (c *Config) Get() Config {
 }
 
 func (c *Config) IsSetupRequired() bool {
-	c.mu.RLock()
-	defer c.mu.RUnlock()
-	return c.B2KeyID == "" || c.B2AppKey == "" || c.B2BucketName == ""
+	return false
 }
 
 func envInt(key string, def int) int {
