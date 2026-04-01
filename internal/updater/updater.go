@@ -203,6 +203,15 @@ docker rm -f floodtest-updater 2>/dev/null || true
 	// Remove stale updater container if exists
 	u.docker.ContainerRemove(ctx, "floodtest-updater", container.RemoveOptions{Force: true})
 
+	// Ensure docker:cli image is available
+	cliReader, err := u.docker.ImagePull(ctx, "docker:cli", image.PullOptions{})
+	if err != nil {
+		u.record(prev, "", "failed", err.Error())
+		return fmt.Errorf("pull docker:cli: %w", err)
+	}
+	io.Copy(io.Discard, cliReader)
+	cliReader.Close()
+
 	resp, err := u.docker.ContainerCreate(ctx, &container.Config{
 		Image: "docker:cli",
 		Cmd:   []string{"sh", "/data/.floodtest-update.sh"},
