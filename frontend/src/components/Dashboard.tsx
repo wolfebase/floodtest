@@ -1,8 +1,8 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
 import { WsStats } from '../hooks/useWebSocket'
 import { api, UsageCounters } from '../api/client'
-import ServerHealth from './ServerHealth'
 import TrafficFlow from './TrafficFlow'
+import ControlSurface from './ControlSurface'
 
 interface DashboardProps {
   ws: { stats: WsStats; connected: boolean }
@@ -14,340 +14,65 @@ function formatBytes(bytes: number): string {
   return `${(bytes / 1e6).toFixed(2)} MB`
 }
 
-function formatDuration(seconds: number): string {
-  const h = Math.floor(seconds / 3600)
-  const m = Math.floor((seconds % 3600) / 60)
-  const s = Math.floor(seconds % 60)
-  return `${h}h ${m}m ${s}s`
-}
-
 export default function Dashboard({ ws }: DashboardProps) {
   const { stats, connected } = ws
   const [usage, setUsage] = useState<UsageCounters | null>(null)
-  const [toggling, setToggling] = useState(false)
-  const [mode, setMode] = useState<string>('reliable')
-  const [manualDl, setManualDl] = useState('')
-  const [manualUl, setManualUl] = useState('')
-  const [savingManual, setSavingManual] = useState(false)
-
-  // Sync mode from WebSocket
-  useEffect(() => {
-    if (stats.autoMode) {
-      setMode(stats.autoMode)
-    }
-  }, [stats.autoMode])
-
-  const handleManualSave = useCallback(async () => {
-    const dl = parseInt(manualDl, 10)
-    const ul = parseInt(manualUl, 10)
-    if (!dl || !ul || dl < 1 || ul < 1) return
-    setSavingManual(true)
-    try {
-      await api.updateSettings({
-        defaultDownloadMbps: Math.round(dl * 0.9),
-        defaultUploadMbps: Math.round(ul * 0.9),
-        autoMode: 'reliable',
-      })
-      setManualDl('')
-      setManualUl('')
-    } catch {
-      // ignore
-    } finally {
-      setSavingManual(false)
-    }
-  }, [manualDl, manualUl])
 
   useEffect(() => {
-    const fetchUsage = () => {
-      api.getUsage().then(setUsage).catch(() => {})
-    }
+    const fetchUsage = () => { api.getUsage().then(setUsage).catch(() => {}) }
     fetchUsage()
     const interval = setInterval(fetchUsage, 10000)
     return () => clearInterval(interval)
   }, [])
 
-  const handleToggle = async () => {
-    setToggling(true)
-    try {
-      if (stats.running) {
-        await api.stop()
-      } else {
-        await api.start()
-      }
-    } catch {
-      // ignore errors
-    } finally {
-      setToggling(false)
-    }
-  }
-
-  const handleModeChange = async (newMode: string) => {
-    setMode(newMode)
-    await api.updateSettings({ autoMode: newMode })
-  }
-
-  const hasMeasurements = stats.measuredDownloadMbps > 0 || stats.measuredUploadMbps > 0
-
-  const statusLine = () => {
-    if (!stats.running) {
-      return mode === 'reliable'
-        ? 'Auto-tuned for sustained throughput'
-        : 'Maximum streams, no rate limiting'
-    }
-    if (mode === 'max') return 'Running at full speed \u2014 no limits'
-    if (hasMeasurements) {
-      return `Auto-configured: ${Math.round(stats.measuredDownloadMbps)} Mbps down / ${Math.round(stats.measuredUploadMbps)} Mbps up`
-    }
-    return 'Starting up...'
-  }
-
   return (
     <div className="space-y-6">
-      {/* Header row: title + connection indicator */}
+      {/* Header row */}
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold text-white">FloodTest Dashboard</h2>
         <div className="flex items-center gap-4">
           {stats.totalServers > 0 && (
             <div className="flex items-center gap-1.5">
-              <div
-                className={`w-2.5 h-2.5 rounded-full ${
-                  stats.healthyServers === stats.totalServers
-                    ? 'bg-green-500'
-                    : stats.healthyServers < stats.totalServers * 0.5
-                      ? 'bg-red-500'
-                      : 'bg-yellow-500'
-                }`}
-              />
+              <div className={`w-2.5 h-2.5 rounded-full ${
+                stats.healthyServers === stats.totalServers ? 'bg-green-500'
+                : stats.healthyServers < stats.totalServers * 0.5 ? 'bg-red-500'
+                : 'bg-yellow-500'
+              }`} />
               <span className="text-sm text-gray-400">
                 {stats.healthyServers}/{stats.totalServers} servers
               </span>
             </div>
           )}
           <div className="flex items-center gap-2">
-            <div
-              className={`w-3 h-3 rounded-full ${
-                connected ? 'bg-green-500' : 'bg-red-500'
-              }`}
-            />
-            <span className="text-sm text-gray-400">
-              {connected ? 'Connected' : 'Disconnected'}
-            </span>
+            <div className={`w-3 h-3 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`} />
+            <span className="text-sm text-gray-400">{connected ? 'Connected' : 'Disconnected'}</span>
           </div>
         </div>
       </div>
 
-      {/* Mode Selector — two cards side by side, always equal height */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
-        <div
-          onClick={() => { if (mode !== 'reliable') handleModeChange('reliable') }}
-          className={`bg-gray-900 rounded-xl border-2 p-5 transition-colors text-left flex flex-col ${
-            mode === 'reliable'
-              ? 'border-blue-500'
-              : 'border-gray-800 hover:border-gray-600 cursor-pointer'
-          }`}
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <svg className="w-5 h-5 text-blue-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-            </svg>
-            <span className="text-lg font-semibold text-white">Reliable</span>
-          </div>
-          <p className="text-sm text-gray-400">
-            Auto-tuned for sustained throughput.
-          </p>
+      {/* Control Surface */}
+      <ControlSurface stats={stats} />
 
-          <div className="mt-4 space-y-3 border-t border-gray-800 pt-4 flex-1" onClick={e => e.stopPropagation()}>
-            <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Configure speeds</p>
-
-            {/* Manual input */}
-            <div className="flex items-end gap-2">
-              <div className="flex-1">
-                <label className="block text-xs text-gray-500 mb-1">Download (Mbps)</label>
-                <input
-                  type="number"
-                  placeholder={stats.measuredDownloadMbps > 0 ? String(Math.round(stats.measuredDownloadMbps)) : 'e.g. 5000'}
-                  value={manualDl}
-                  onChange={e => setManualDl(e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-              <div className="flex-1">
-                <label className="block text-xs text-gray-500 mb-1">Upload (Mbps)</label>
-                <input
-                  type="number"
-                  placeholder={stats.measuredUploadMbps > 0 ? String(Math.round(stats.measuredUploadMbps)) : 'e.g. 5000'}
-                  value={manualUl}
-                  onChange={e => setManualUl(e.target.value)}
-                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder-gray-600 focus:border-blue-500 focus:outline-none"
-                />
-              </div>
-              <button
-                onClick={handleManualSave}
-                disabled={savingManual || !manualDl || !manualUl}
-                className="px-4 py-2 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-40 disabled:cursor-not-allowed whitespace-nowrap"
-              >
-                {savingManual ? '...' : 'Apply'}
-              </button>
-            </div>
-            <p className="text-xs text-gray-600">
-              Enter your ISP speeds. Targets are set to 90% of these values.
-              {'\n'}If not set, a speed test runs automatically on first start.
-            </p>
-          </div>
-        </div>
-
-        <div
-          onClick={() => { if (mode !== 'max') handleModeChange('max') }}
-          className={`bg-gray-900 rounded-xl border-2 p-5 transition-colors text-left flex flex-col ${
-            mode === 'max'
-              ? 'border-blue-500'
-              : 'border-gray-800 hover:border-gray-600 cursor-pointer'
-          }`}
-        >
-          <div className="flex items-center gap-3 mb-2">
-            <svg className="w-5 h-5 text-red-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-            </svg>
-            <span className="text-lg font-semibold text-white">Max</span>
-          </div>
-          <p className="text-sm text-gray-400">
-            No limits. Maximum streams, no rate limiting.
-          </p>
-
-          <div className="mt-4 space-y-3 border-t border-gray-800 pt-4 flex-1">
-            <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Configuration</p>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="bg-gray-800 rounded-lg px-3 py-2">
-                <p className="text-xs text-gray-500">Download Streams</p>
-                <p className="text-sm font-semibold text-white">64 (unlimited)</p>
-              </div>
-              <div className="bg-gray-800 rounded-lg px-3 py-2">
-                <p className="text-xs text-gray-500">Upload Streams</p>
-                <p className="text-sm font-semibold text-white">32 (unlimited)</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-2 bg-red-900/20 border border-red-900/30 rounded-lg px-3 py-2">
-              <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
-              </svg>
-              <p className="text-xs text-red-400/80">
-                Uses all available bandwidth with no rate limiting. May affect other devices on your network.
-              </p>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Start/Stop button + status */}
-      <div className="flex flex-col items-center gap-3">
-        <div className="flex items-center gap-4">
-          <button
-            onClick={handleToggle}
-            disabled={toggling}
-            className={`px-8 py-3 rounded-lg font-semibold text-base transition-colors disabled:opacity-50 ${
-              stats.running
-                ? 'bg-red-600 hover:bg-red-700 text-white'
-                : 'bg-green-600 hover:bg-green-700 text-white'
-            }`}
-          >
-            {toggling ? '...' : stats.running ? 'Stop' : 'Start'}
-          </button>
-          <span
-            className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
-              stats.running
-                ? 'bg-green-900/50 text-green-400 border border-green-800'
-                : 'bg-gray-800 text-gray-400 border border-gray-700'
-            }`}
-          >
-            {stats.running ? 'Running' : 'Stopped'}
-          </span>
-          {stats.running && stats.uptimeSeconds > 0 && (
-            <span className="text-sm text-gray-400">
-              Uptime: {formatDuration(stats.uptimeSeconds)}
-            </span>
-          )}
-        </div>
-        <p className="text-sm text-gray-400">{statusLine()}</p>
-      </div>
-
-      {/* ISP Speed Test progress (shown only during test) */}
-      {stats.ispTestRunning && (
-        <div className="bg-blue-900/20 border border-blue-800 rounded-xl p-4">
-          <div className="flex items-center gap-3 mb-3">
-            <svg className="w-5 h-5 text-blue-400 animate-spin" fill="none" viewBox="0 0 24 24">
-              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-            </svg>
-            <span className="text-sm font-medium text-blue-300">
-              Measuring your connection speed...
-            </span>
-          </div>
-          <p className="text-xs text-blue-400 mb-2">
-            {stats.ispTestPhase || 'Initializing...'}
-          </p>
-          <div className="w-full bg-blue-950 rounded-full h-2">
-            <div
-              className="bg-blue-500 h-2 rounded-full transition-all duration-300"
-              style={{ width: `${Math.min(100, Math.max(0, stats.ispTestProgress))}%` }}
-            />
-          </div>
-          <p className="text-xs text-blue-500 mt-1 text-right">
-            {Math.round(stats.ispTestProgress)}%
-          </p>
-        </div>
-      )}
-
-      {/* Traffic flow diagram */}
+      {/* Traffic Flow */}
       <TrafficFlow stats={stats} />
 
-      {/* Cumulative usage */}
-      <div>
-        <h3 className="text-lg font-semibold text-white mb-3">Cumulative Usage</h3>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-          {(
-            [
-              { label: 'Session', key: 'session' },
-              { label: 'Today', key: 'today' },
-              { label: 'This Month', key: 'month' },
-              { label: 'All-Time', key: 'allTime' },
-            ] as const
-          ).map(({ label, key }) => (
-            <div
-              key={key}
-              className="bg-gray-900 rounded-xl border border-gray-800 p-4"
-            >
-              <div className="text-sm font-medium text-gray-400 mb-2">
-                {label}
-              </div>
-              {usage ? (
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500">Down</span>
-                    <span className="text-sm font-semibold text-green-400">
-                      {formatBytes(usage[key].downloadBytes)}
-                    </span>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-gray-500">Up</span>
-                    <span className="text-sm font-semibold text-blue-400">
-                      {formatBytes(usage[key].uploadBytes)}
-                    </span>
-                  </div>
-                </div>
-              ) : (
-                <div className="text-sm text-gray-600">Loading...</div>
-              )}
+      {/* Usage Stats */}
+      {usage && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {[
+            { label: 'Session', dl: usage.session.downloadBytes, ul: usage.session.uploadBytes },
+            { label: 'Today', dl: usage.today.downloadBytes, ul: usage.today.uploadBytes },
+            { label: 'This Month', dl: usage.month.downloadBytes, ul: usage.month.uploadBytes },
+            { label: 'All Time', dl: usage.allTime.downloadBytes, ul: usage.allTime.uploadBytes },
+          ].map(u => (
+            <div key={u.label} className="bg-gray-900 rounded-xl border border-gray-800 p-4">
+              <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide mb-2">{u.label}</h3>
+              <div className="text-sm text-gray-300">&darr; {formatBytes(u.dl)}</div>
+              <div className="text-sm text-gray-300">&uarr; {formatBytes(u.ul)}</div>
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Server Health */}
-      <ServerHealth
-        speedTestRunning={ws.stats.speedTestRunning}
-        speedTestCompleted={ws.stats.speedTestCompleted}
-        speedTestTotal={ws.stats.speedTestTotal}
-      />
+      )}
     </div>
   )
 }
