@@ -15,9 +15,9 @@ import (
 )
 
 const (
-	downloadURL     = "https://speed.cloudflare.com/__down?bytes=100000000" // 100MB
+	downloadURL     = "https://speed.cloudflare.com/__down?bytes=1000000000" // 1GB — avoids file exhaustion on fast links
 	uploadURL       = "https://speed.cloudflare.com/__up"
-	streams         = 8
+	streams         = 16
 	warmupDuration  = 3 * time.Second
 	testDuration    = 10 * time.Second
 	sampleInterval  = 200 * time.Millisecond

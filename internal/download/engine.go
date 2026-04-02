@@ -38,8 +38,9 @@ type Engine struct {
 	running        atomic.Bool
 	cancel         context.CancelFunc
 	wg             sync.WaitGroup
-	mu             sync.Mutex // guards concurrency and cancel
+	mu             sync.Mutex   // guards concurrency and cancel
 	statsProvider  func() int64 // returns current download bps
+	httpClient     *http.Client // shared across all goroutines for connection reuse
 }
 
 // New creates a download Engine.
@@ -51,6 +52,7 @@ func New(serverList *ServerList, concurrency int, rateLimitBps int64) *Engine {
 		serverList:     serverList,
 		concurrency:    concurrency,
 		maxConcurrency: 64,
+		httpClient:     newHTTPClient(),
 	}
 	e.rateLimitBps.Store(rateLimitBps)
 	return e
@@ -94,8 +96,7 @@ func (e *Engine) Start(ctx context.Context) {
 	e.running.Store(true)
 	e.activeStreams.Store(0)
 
-	conc := e.concurrency
-	for i := 0; i < conc; i++ {
+	for i := 0; i < e.concurrency; i++ {
 		e.launchStream(ctx)
 	}
 
@@ -114,7 +115,7 @@ func (e *Engine) launchStream(ctx context.Context) {
 	go func() {
 		defer e.wg.Done()
 		defer e.activeStreams.Add(-1)
-		e.downloadLoop(ctx, int(e.activeStreams.Load()))
+		e.downloadLoop(ctx)
 	}()
 }
 
@@ -152,14 +153,22 @@ func (e *Engine) SetConcurrency(n int) {
 	e.concurrency = n
 }
 
-// httpClient returns an *http.Client tuned for long-running streaming
+// newHTTPClient returns an *http.Client tuned for long-running streaming
 // downloads: 30 s connection timeout, no overall request timeout.
-func httpClient() *http.Client {
+// The client is shared across all goroutines so that connections to the
+// same host are pooled and reused instead of each goroutine opening its own
+// TCP connections.
+func newHTTPClient() *http.Client {
 	transport := &http.Transport{
 		DialContext: (&net.Dialer{
 			Timeout: connTimeout,
 		}).DialContext,
-		TLSHandshakeTimeout: connTimeout,
+		TLSHandshakeTimeout:   connTimeout,
+		MaxIdleConns:          256,
+		MaxIdleConnsPerHost:   64,
+		MaxConnsPerHost:       64,
+		IdleConnTimeout:       90 * time.Second,
+		ResponseHeaderTimeout: connTimeout,
 	}
 	return &http.Client{
 		Transport: transport,
@@ -169,8 +178,8 @@ func httpClient() *http.Client {
 
 // downloadLoop is the main work function executed by each goroutine.
 // It repeatedly picks a server, downloads its payload, and loops.
-func (e *Engine) downloadLoop(ctx context.Context, totalWorkers int) {
-	client := httpClient()
+func (e *Engine) downloadLoop(ctx context.Context) {
+	client := e.httpClient
 	buf := make([]byte, readBufSize)
 
 	for {
@@ -191,7 +200,7 @@ func (e *Engine) downloadLoop(ctx context.Context, totalWorkers int) {
 
 		e.serverList.IncrementStreams(serverURL)
 		start := time.Now()
-		bytesRead, err := e.downloadFrom(ctx, client, serverURL, buf, totalWorkers)
+		bytesRead, err := e.downloadFrom(ctx, client, serverURL, buf)
 		e.serverList.DecrementStreams(serverURL)
 
 		if err != nil {
@@ -222,7 +231,7 @@ func (e *Engine) downloadLoop(ctx context.Context, totalWorkers int) {
 // downloadFrom performs a single HTTP GET against serverURL, streaming the
 // response body through rate limiting and reporting bytes to the stats
 // collector.
-func (e *Engine) downloadFrom(ctx context.Context, client *http.Client, serverURL string, buf []byte, totalWorkers int) (int64, error) {
+func (e *Engine) downloadFrom(ctx context.Context, client *http.Client, serverURL string, buf []byte) (int64, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, serverURL, nil)
 	if err != nil {
 		return 0, fmt.Errorf("creating request: %w", err)
@@ -240,21 +249,34 @@ func (e *Engine) downloadFrom(ctx context.Context, client *http.Client, serverUR
 	}
 
 	// Build or rebuild the rate limiter based on the current setting.
+	// We read activeStreams live so that the per-worker budget stays correct
+	// as auto-adjust adds or removes goroutines during this download.
 	var limiter *rate.Limiter
 	lastLimit := e.rateLimitBps.Load()
+	lastWorkers := int64(e.activeStreams.Load())
+	if lastWorkers < 1 {
+		lastWorkers = 1
+	}
 	if lastLimit > 0 {
-		perWorker := float64(lastLimit) / float64(totalWorkers)
+		perWorker := float64(lastLimit) / float64(lastWorkers)
 		limiter = rate.NewLimiter(rate.Limit(perWorker), burstSize)
 	}
 
 	var totalRead int64
 	for {
-		// Check for rate-limit changes and adjust.
+		// Re-evaluate the rate limit whenever either the aggregate limit or the
+		// live worker count changes.  This ensures per-worker budgets stay
+		// accurate as auto-adjust adds streams mid-download.
 		currentLimit := e.rateLimitBps.Load()
-		if currentLimit != lastLimit {
+		currentWorkers := int64(e.activeStreams.Load())
+		if currentWorkers < 1 {
+			currentWorkers = 1
+		}
+		if currentLimit != lastLimit || currentWorkers != lastWorkers {
 			lastLimit = currentLimit
+			lastWorkers = currentWorkers
 			if currentLimit > 0 {
-				perWorker := float64(currentLimit) / float64(totalWorkers)
+				perWorker := float64(currentLimit) / float64(currentWorkers)
 				if limiter == nil {
 					limiter = rate.NewLimiter(rate.Limit(perWorker), burstSize)
 				} else {
@@ -322,11 +344,25 @@ func (e *Engine) autoAdjust(ctx context.Context) {
 			current := provider()
 			active := int(e.activeStreams.Load())
 
-			// If below 80% of target and room for more streams, add one
+			// If below 80% of target and room for more streams, add streams
+			// proportional to the deficit. When far below target (e.g. 1% of
+			// capacity) we add aggressively; when close we add conservatively.
 			if current < target*80/100 && active < maxConc {
-				e.launchStream(ctx)
-				log.Printf("download auto-adjust: added stream (now %d, current=%dMbps, target=%dMbps)",
-					e.activeStreams.Load(), current/1_000_000, target/1_000_000)
+				// Add up to 4 streams at once, scaled by how far below target we are.
+				// deficit fraction: 0.0 = at target, 1.0 = zero throughput.
+				deficitFraction := 1.0 - float64(current)/float64(target)
+				toAdd := int(deficitFraction*4) + 1
+				if toAdd < 1 {
+					toAdd = 1
+				}
+				if active+toAdd > maxConc {
+					toAdd = maxConc - active
+				}
+				for i := 0; i < toAdd; i++ {
+					e.launchStream(ctx)
+				}
+				log.Printf("download auto-adjust: added %d stream(s) (now %d, current=%dMbps, target=%dMbps)",
+					toAdd, e.activeStreams.Load(), current/1_000_000, target/1_000_000)
 			}
 		}
 	}
