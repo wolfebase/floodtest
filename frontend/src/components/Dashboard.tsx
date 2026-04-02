@@ -233,11 +233,11 @@ export default function Dashboard({ ws }: DashboardProps) {
         </div>
 
         <div
-          onClick={() => handleModeChange('max')}
-          className={`bg-gray-900 rounded-xl border-2 p-5 cursor-pointer transition-colors text-left self-start ${
+          onClick={() => { if (mode !== 'max') handleModeChange('max') }}
+          className={`bg-gray-900 rounded-xl border-2 p-5 transition-colors text-left self-start ${
             mode === 'max'
               ? 'border-blue-500'
-              : 'border-gray-800 hover:border-gray-600'
+              : 'border-gray-800 hover:border-gray-600 cursor-pointer'
           }`}
         >
           <div className="flex items-center gap-3 mb-2">
@@ -249,6 +249,30 @@ export default function Dashboard({ ws }: DashboardProps) {
           <p className="text-sm text-gray-400">
             No limits. Maximum streams, no rate limiting.
           </p>
+
+          {mode === 'max' && (
+            <div className="mt-4 space-y-3 border-t border-gray-800 pt-4">
+              <p className="text-xs text-gray-500 uppercase tracking-wide font-medium">Configuration</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-gray-800 rounded-lg px-3 py-2">
+                  <p className="text-xs text-gray-500">Download Streams</p>
+                  <p className="text-sm font-semibold text-white">64 (unlimited)</p>
+                </div>
+                <div className="bg-gray-800 rounded-lg px-3 py-2">
+                  <p className="text-xs text-gray-500">Upload Streams</p>
+                  <p className="text-sm font-semibold text-white">32 (unlimited)</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2 bg-red-900/20 border border-red-900/30 rounded-lg px-3 py-2">
+                <svg className="w-4 h-4 text-red-400 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z" />
+                </svg>
+                <p className="text-xs text-red-400/80">
+                  Uses all available bandwidth with no rate limiting. May affect other devices on your network.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
