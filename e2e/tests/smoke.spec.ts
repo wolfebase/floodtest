@@ -4,7 +4,7 @@ test.describe('Dashboard', () => {
   test('loads and shows mode selector', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByRole('heading', { name: 'FloodTest', level: 1 })).toBeVisible()
-    await expect(page.getByRole('button', { name: /start|stop/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /launch|stop/i })).toBeVisible()
   })
 
   test('shows traffic flow diagram', async ({ page }) => {
