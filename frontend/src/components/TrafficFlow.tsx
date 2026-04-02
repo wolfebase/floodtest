@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef } from 'react'
 import { WsStats } from '../hooks/useWebSocket'
 import { usePageVisibility } from '../hooks/usePageVisibility'
 import { api, ServerHealth, UploadServerHealth } from '../api/client'
@@ -9,13 +9,22 @@ interface Props {
   stats: WsStats
 }
 
+function estimateProviderCount(servers: (ServerHealth | UploadServerHealth)[]): number {
+  const active = servers.filter(s => s.activeStreams > 0)
+  const domains = new Set(active.map(s => {
+    try { return new URL(s.url).hostname.split('.').slice(-2).join('.') } catch { return s.url }
+  }))
+  return domains.size
+}
+
 export default function TrafficFlow({ stats }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const rendererRef = useRef<TrafficFlowRenderer | null>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const visible = usePageVisibility()
   const serverDataRef = useRef<{ dl: ServerHealth[]; ul: UploadServerHealth[] }>({ dl: [], ul: [] })
-  const [serverDataVersion, setServerDataVersion] = useState(0)
+  const lastWidthRef = useRef(0)
+  const lastHeightRef = useRef(0)
 
   // Initialize renderer once
   useEffect(() => {
@@ -26,33 +35,24 @@ export default function TrafficFlow({ stats }: Props) {
     return () => { rendererRef.current?.stop() }
   }, [])
 
-  // Handle container resize via ResizeObserver, with dynamic height based on provider count
+  // Handle container resize via ResizeObserver (only triggers resize on actual size changes)
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
-
-    const computeHeight = (): number => {
-      const { dl, ul } = serverDataRef.current
-      const dlActive = dl.filter(s => s.activeStreams > 0)
-      const ulActive = ul.filter(s => s.activeStreams > 0)
-      // Estimate provider count by grouping hostnames
-      const extractDomain = (url: string) => {
-        try { return new URL(url).hostname.split('.').slice(-2).join('.') } catch { return url }
-      }
-      const dlProviders = new Set(dlActive.map(s => extractDomain(s.url)))
-      const ulProviders = new Set(ulActive.map(s => extractDomain(s.url)))
-      const maxNodes = Math.max(dlProviders.size, ulProviders.size, 1)
-      return window.innerWidth < 640 ? 400 : Math.max(300, maxNodes * 58 + 80)
-    }
-
     const observer = new ResizeObserver((entries) => {
       const { width } = entries[0].contentRect
-      rendererRef.current?.resize(width, computeHeight())
+      if (width > 0 && width !== lastWidthRef.current) {
+        lastWidthRef.current = width
+        const { dl, ul } = serverDataRef.current
+        const maxNodes = Math.max(estimateProviderCount(dl), estimateProviderCount(ul), 1)
+        const height = window.innerWidth < 640 ? 400 : Math.max(300, maxNodes * 58 + 80)
+        lastHeightRef.current = height
+        rendererRef.current?.resize(width, height)
+      }
     })
     observer.observe(container)
     return () => observer.disconnect()
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serverDataVersion])
+  }, [])
 
   // Start/stop animation based on tab visibility
   useEffect(() => {
@@ -72,7 +72,14 @@ export default function TrafficFlow({ stats }: Props) {
           api.getUploadServerHealth(),
         ])
         serverDataRef.current = { dl, ul }
-        setServerDataVersion(v => v + 1)
+
+        // Only resize if height needs to change (provider count changed)
+        const maxNodes = Math.max(estimateProviderCount(dl), estimateProviderCount(ul), 1)
+        const newHeight = window.innerWidth < 640 ? 400 : Math.max(300, maxNodes * 58 + 80)
+        if (newHeight !== lastHeightRef.current && lastWidthRef.current > 0) {
+          lastHeightRef.current = newHeight
+          rendererRef.current?.resize(lastWidthRef.current, newHeight)
+        }
       } catch { /* ignore */ }
     }
     fetchServers()
@@ -80,7 +87,7 @@ export default function TrafficFlow({ stats }: Props) {
     return () => clearInterval(interval)
   }, [])
 
-  // Push data to renderer on every WebSocket tick (no React re-render of canvas)
+  // Push data to renderer on every WebSocket tick
   useEffect(() => {
     const { dl, ul } = serverDataRef.current
     const flowData: FlowData = {

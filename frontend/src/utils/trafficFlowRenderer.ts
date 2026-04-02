@@ -178,11 +178,13 @@ export class TrafficFlowRenderer {
     const prevData = this.data
     this.data = data
 
-    // Rebuild layout if provider list changes
-    const prevDl = prevData?.downloadProviders.map((p) => p.name).join(',') ?? ''
-    const prevUl = prevData?.uploadTargets.map((p) => p.name).join(',') ?? ''
-    const newDl = data.downloadProviders.map((p) => p.name).join(',')
-    const newUl = data.uploadTargets.map((p) => p.name).join(',')
+    // Rebuild layout only if the set of provider names actually changes
+    // (not on reordering — providers are sorted by speed which fluctuates)
+    const nameSet = (providers: ProviderGroup[]) => [...providers.map(p => p.name)].sort().join(',')
+    const prevDl = prevData ? nameSet(prevData.downloadProviders) : ''
+    const prevUl = prevData ? nameSet(prevData.uploadTargets) : ''
+    const newDl = nameSet(data.downloadProviders)
+    const newUl = nameSet(data.uploadTargets)
 
     if (prevDl !== newDl || prevUl !== newUl) {
       this.rebuildLayout()
@@ -403,14 +405,16 @@ export class TrafficFlowRenderer {
     const totalUlStreams = this.data.uploadStreams || 1
     const maxBps = Math.max(this.data.totalDownloadBps, this.data.totalUploadBps, 1)
 
-    for (let i = 0; i < this.downloadPipes.length; i++) {
-      const provider = this.data.downloadProviders[i]
+    // Build a lookup by provider name for download providers
+    const dlByName = new Map(this.data.downloadProviders.map(p => [p.name, p]))
+
+    for (const pipe of this.downloadPipes) {
+      const provider = dlByName.get(pipe.from.name)
       if (provider) {
-        // Distribute total download Bps proportionally by stream count
         const streamRatio = provider.activeStreams / totalDlStreams
         const estimatedBps = this.data.totalDownloadBps * streamRatio
-        this.downloadPipes[i].throughputFraction = estimatedBps / maxBps
-        this.downloadPipes[i].from.detail = `${provider.activeStreams} streams  ${formatSpeed(estimatedBps)}`
+        pipe.throughputFraction = estimatedBps / maxBps
+        pipe.from.detail = `${provider.activeStreams} streams  ${formatSpeed(estimatedBps)}`
       }
     }
 
