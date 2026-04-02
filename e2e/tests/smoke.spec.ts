@@ -9,8 +9,8 @@ test.describe('Dashboard', () => {
 
   test('shows download and upload speed cards', async ({ page }) => {
     await page.goto('/')
-    await expect(page.locator('text=Download')).toBeVisible()
-    await expect(page.locator('text=Upload')).toBeVisible()
+    await expect(page.getByText('Download', { exact: true })).toBeVisible()
+    await expect(page.getByText('Upload', { exact: true })).toBeVisible()
   })
 })
 
