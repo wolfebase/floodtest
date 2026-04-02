@@ -42,6 +42,8 @@ type App struct {
 	RunISPSpeedTest         func(ctx context.Context) (interface{}, error)
 	UnblockServer           func(url string) bool
 	UnblockAll              func() int
+	UnblockUploadServer     func(url string) bool
+	UnblockAllUploads       func() int
 	GetUpdateStatus         func() interface{}
 	CheckForUpdate          func(ctx context.Context) (interface{}, error)
 	ApplyUpdate             func(ctx context.Context) error
@@ -727,6 +729,38 @@ func (a *App) HandleUnblockAll(w http.ResponseWriter, r *http.Request) {
 	count := 0
 	if a.UnblockAll != nil {
 		count = a.UnblockAll()
+	}
+	writeJSON(w, map[string]interface{}{"status": "unblocked", "count": count})
+}
+
+func (a *App) HandleUnblockUploadServer(w http.ResponseWriter, r *http.Request) {
+	var req struct {
+		URL string `json:"url"`
+	}
+	if err := decodeJSONBody(r, &req, false); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	req.URL = strings.TrimSpace(req.URL)
+	if req.URL == "" {
+		writeError(w, http.StatusBadRequest, "url is required")
+		return
+	}
+	if err := validateAbsoluteURL("url", req.URL); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if a.UnblockUploadServer != nil && a.UnblockUploadServer(req.URL) {
+		writeJSON(w, map[string]string{"status": "unblocked"})
+	} else {
+		writeError(w, 404, "upload server not found")
+	}
+}
+
+func (a *App) HandleUnblockAllUploads(w http.ResponseWriter, r *http.Request) {
+	count := 0
+	if a.UnblockAllUploads != nil {
+		count = a.UnblockAllUploads()
 	}
 	writeJSON(w, map[string]interface{}{"status": "unblocked", "count": count})
 }

@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -310,5 +311,30 @@ func TestValidateAutoUpdateSchedule(t *testing.T) {
 	// Invalid schedule string
 	if err := validateAutoUpdateSchedule(true, "biweekly"); err == nil {
 		t.Fatal("schedule='biweekly' should be invalid, got nil")
+	}
+}
+
+func TestHandleUnblockUploadServer(t *testing.T) {
+	app := &App{
+		UnblockUploadServer: func(url string) bool { return url == "http://a.com" },
+	}
+	body := `{"url":"http://a.com"}`
+	req := httptest.NewRequest("POST", "/api/upload-unblock", strings.NewReader(body))
+	w := httptest.NewRecorder()
+	app.HandleUnblockUploadServer(w, req)
+	if w.Code != 200 {
+		t.Errorf("expected 200, got %d", w.Code)
+	}
+}
+
+func TestHandleUnblockAllUploads(t *testing.T) {
+	app := &App{
+		UnblockAllUploads: func() int { return 3 },
+	}
+	req := httptest.NewRequest("POST", "/api/upload-unblock-all", nil)
+	w := httptest.NewRecorder()
+	app.HandleUnblockAllUploads(w, req)
+	if w.Code != 200 {
+		t.Errorf("expected 200, got %d", w.Code)
 	}
 }
