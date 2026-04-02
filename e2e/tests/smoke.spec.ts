@@ -3,7 +3,7 @@ import { test, expect } from '@playwright/test'
 test.describe('Dashboard', () => {
   test('loads and shows mode selector', async ({ page }) => {
     await page.goto('/')
-    await expect(page.locator('text=FloodTest')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'FloodTest', level: 1 })).toBeVisible()
     await expect(page.getByRole('button', { name: /start|stop/i })).toBeVisible()
   })
 
@@ -18,7 +18,7 @@ test.describe('Settings', () => {
   test('loads settings page', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('link', { name: /settings/i }).click()
-    await expect(page.locator('text=Download Speed')).toBeVisible()
+    await expect(page.locator('text=Download (Mbps)')).toBeVisible()
   })
 })
 
