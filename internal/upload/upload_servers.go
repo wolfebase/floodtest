@@ -1,6 +1,7 @@
 package upload
 
 import (
+	"fmt"
 	"net/url"
 	"strings"
 	"sync"
@@ -54,9 +55,10 @@ type uploadServer struct {
 // UploadServerList manages a thread-safe list of upload servers
 // with per-server health tracking and round-robin selection.
 type UploadServerList struct {
-	mu      sync.RWMutex
-	servers []uploadServer
-	index   int
+	mu       sync.RWMutex
+	servers  []uploadServer
+	index    int
+	eventBuf interface{ Add(kind, message string) }
 }
 
 // deriveUploadLocation extracts a human-readable region label from a server URL's hostname.
@@ -82,6 +84,13 @@ func deriveUploadLocation(rawURL string) string {
 		}
 	}
 	return ""
+}
+
+// SetEventBuffer attaches an event buffer for emitting server health events.
+func (sl *UploadServerList) SetEventBuffer(buf interface{ Add(kind, message string) }) {
+	sl.mu.Lock()
+	defer sl.mu.Unlock()
+	sl.eventBuf = buf
 }
 
 // NewUploadServerList creates an UploadServerList from the given URLs.
@@ -180,6 +189,17 @@ func (sl *UploadServerList) MarkUnhealthy(url, errMsg string) {
 				cooldown = uploadMaxCooldown
 			}
 			s.unhealthyUntil = time.Now().Add(cooldown)
+			if sl.eventBuf != nil {
+				loc := s.location
+				if loc == "" {
+					loc = url
+				}
+				if s.blocked {
+					sl.eventBuf.Add("server", fmt.Sprintf("%s blocked (%d failures)", loc, s.consecutiveFailures))
+				} else {
+					sl.eventBuf.Add("server", fmt.Sprintf("%s → cooldown (%d failures)", loc, s.consecutiveFailures))
+				}
+			}
 			return
 		}
 	}
@@ -193,8 +213,16 @@ func (sl *UploadServerList) MarkSuccess(url string) {
 
 	for i := range sl.servers {
 		if sl.servers[i].url == url {
+			wasDown := sl.servers[i].consecutiveFailures > 0
 			sl.servers[i].consecutiveFailures = 0
 			sl.servers[i].totalUploads++
+			if wasDown && sl.eventBuf != nil {
+				loc := sl.servers[i].location
+				if loc == "" {
+					loc = url
+				}
+				sl.eventBuf.Add("server", fmt.Sprintf("%s recovered", loc))
+			}
 			return
 		}
 	}

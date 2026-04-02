@@ -1,6 +1,7 @@
 package download
 
 import (
+	"fmt"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -166,9 +167,10 @@ type Server struct {
 // ServerList manages a thread-safe list of download servers
 // with per-server health tracking, weighted selection, and automatic cooldown recovery.
 type ServerList struct {
-	mu      sync.RWMutex
-	servers []Server
-	index   int
+	mu       sync.RWMutex
+	servers  []Server
+	index    int
+	eventBuf interface{ Add(kind, message string) }
 }
 
 // buildLocationMap returns a URL → Location mapping from DefaultServerEntries.
@@ -178,6 +180,13 @@ func buildLocationMap() map[string]string {
 		m[e.URL] = e.Location
 	}
 	return m
+}
+
+// SetEventBuffer attaches an event buffer for emitting server health events.
+func (sl *ServerList) SetEventBuffer(buf interface{ Add(kind, message string) }) {
+	sl.mu.Lock()
+	defer sl.mu.Unlock()
+	sl.eventBuf = buf
 }
 
 // NewServerList creates a ServerList from the given URLs.
@@ -318,6 +327,17 @@ func (sl *ServerList) MarkUnhealthy(url string, errMsg string) {
 				cooldown = maxCooldown
 			}
 			s.unhealthyUntil = time.Now().Add(cooldown)
+			if sl.eventBuf != nil {
+				loc := s.Location
+				if loc == "" {
+					loc = url
+				}
+				if s.blocked {
+					sl.eventBuf.Add("server", fmt.Sprintf("%s blocked (%d failures)", loc, s.consecutiveFailures))
+				} else {
+					sl.eventBuf.Add("server", fmt.Sprintf("%s → cooldown (%d failures)", loc, s.consecutiveFailures))
+				}
+			}
 			return
 		}
 	}
@@ -331,8 +351,16 @@ func (sl *ServerList) MarkSuccess(url string) {
 
 	for i := range sl.servers {
 		if sl.servers[i].URL == url {
+			wasDown := sl.servers[i].consecutiveFailures > 0
 			sl.servers[i].consecutiveFailures = 0
 			sl.servers[i].totalDownloads++
+			if wasDown && sl.eventBuf != nil {
+				loc := sl.servers[i].Location
+				if loc == "" {
+					loc = url
+				}
+				sl.eventBuf.Add("server", fmt.Sprintf("%s recovered", loc))
+			}
 			return
 		}
 	}

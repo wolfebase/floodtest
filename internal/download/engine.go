@@ -41,6 +41,7 @@ type Engine struct {
 	mu             sync.Mutex   // guards concurrency and cancel
 	statsProvider  func() int64 // returns current download bps
 	httpClient     *http.Client // shared across all goroutines for connection reuse
+	eventBuf       interface{ Add(kind, message string) }
 }
 
 // New creates a download Engine.
@@ -56,6 +57,13 @@ func New(serverList *ServerList, concurrency int, rateLimitBps int64) *Engine {
 	}
 	e.rateLimitBps.Store(rateLimitBps)
 	return e
+}
+
+// SetEventBuffer attaches an event buffer for emitting engine lifecycle events.
+func (e *Engine) SetEventBuffer(buf interface{ Add(kind, message string) }) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.eventBuf = buf
 }
 
 // SetStatsProvider sets a function that returns current download throughput in bps.
@@ -363,6 +371,9 @@ func (e *Engine) autoAdjust(ctx context.Context) {
 				}
 				log.Printf("download auto-adjust: added %d stream(s) (now %d, current=%dMbps, target=%dMbps)",
 					toAdd, e.activeStreams.Load(), current/1_000_000, target/1_000_000)
+				if eb := e.eventBuf; eb != nil {
+					eb.Add("stream", fmt.Sprintf("+%d download stream(s) → %d total", toAdd, e.activeStreams.Load()))
+				}
 			}
 		}
 	}

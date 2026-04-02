@@ -46,6 +46,7 @@ type Engine struct {
 	appKey   string
 	endpoint string
 	bucket   string
+	eventBuf interface{ Add(kind, message string) }
 }
 
 // New creates an Engine but does NOT establish an S3 connection yet.
@@ -63,6 +64,13 @@ func New(keyID, appKey, bucket, endpoint string, concurrency int, chunkSizeBytes
 	}
 	e.rateLimitBps.Store(rateLimitBps)
 	return e
+}
+
+// SetEventBuffer attaches an event buffer for emitting engine lifecycle events.
+func (e *Engine) SetEventBuffer(buf interface{ Add(kind, message string) }) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.eventBuf = buf
 }
 
 // SetStatsCollector assigns the collector that receives upload byte counts.
@@ -356,6 +364,9 @@ func (e *Engine) autoAdjust(ctx context.Context) {
 				e.launchStream(ctx)
 				log.Printf("upload auto-adjust: added stream (now %d, current=%dMbps, target=%dMbps)",
 					e.activeStreams.Load(), current/1_000_000, target/1_000_000)
+				if eb := e.eventBuf; eb != nil {
+					eb.Add("stream", fmt.Sprintf("+1 upload stream → %d total", e.activeStreams.Load()))
+				}
 			}
 		}
 	}

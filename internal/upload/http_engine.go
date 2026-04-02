@@ -33,6 +33,7 @@ type HTTPEngine struct {
 	mu             sync.Mutex
 	statsProvider  func() int64
 	client         *http.Client
+	eventBuf       interface{ Add(kind, message string) }
 }
 
 // NewHTTPEngine creates an HTTPEngine. Call Start to begin uploading.
@@ -45,6 +46,13 @@ func NewHTTPEngine(serverList *UploadServerList, concurrency int, chunkSize int6
 	}
 	e.rateLimitBps.Store(rateLimitBps)
 	return e
+}
+
+// SetEventBuffer attaches an event buffer for emitting engine lifecycle events.
+func (e *HTTPEngine) SetEventBuffer(buf interface{ Add(kind, message string) }) {
+	e.mu.Lock()
+	defer e.mu.Unlock()
+	e.eventBuf = buf
 }
 
 // SetStatsCollector assigns the collector that receives upload byte counts.
@@ -331,6 +339,9 @@ func (e *HTTPEngine) autoAdjust(ctx context.Context) {
 				e.launchStream(ctx)
 				log.Printf("upload(http) auto-adjust: added stream (now %d, current=%dMbps, target=%dMbps)",
 					e.activeStreams.Load(), current/1_000_000, target/1_000_000)
+				if eb := e.eventBuf; eb != nil {
+					eb.Add("stream", fmt.Sprintf("+1 upload(http) stream → %d total", e.activeStreams.Load()))
+				}
 			}
 		}
 	}
