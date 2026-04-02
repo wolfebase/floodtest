@@ -474,6 +474,24 @@ func main() {
 }
 
 func autoConfigFromSpeedTest(result *speedtest.Result, cfg *config.Config) (dlMbps, ulMbps int, err error) {
+	// Sanity check: if one direction measured well but the other is
+	// suspiciously low, the low measurement is likely a test failure
+	// (e.g. CDN 403, network blip). Use the good measurement as a
+	// proxy — most residential links are close to symmetrical, and
+	// even asymmetric links rarely differ by > 10x.
+	dlOk := result.DownloadMbps >= 10
+	ulOk := result.UploadMbps >= 10
+
+	if !dlOk && ulOk {
+		log.Printf("[autoconfig] download measurement (%.1f Mbps) looks broken — using upload (%.1f Mbps) as fallback",
+			result.DownloadMbps, result.UploadMbps)
+		result.DownloadMbps = result.UploadMbps
+	} else if !ulOk && dlOk {
+		log.Printf("[autoconfig] upload measurement (%.1f Mbps) looks broken — using download (%.1f Mbps) as fallback",
+			result.UploadMbps, result.DownloadMbps)
+		result.UploadMbps = result.DownloadMbps
+	}
+
 	dlMbps = int(result.DownloadMbps * 0.9)
 	ulMbps = int(result.UploadMbps * 0.9)
 	if dlMbps < 10 {
