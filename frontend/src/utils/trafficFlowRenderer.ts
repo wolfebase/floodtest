@@ -370,21 +370,28 @@ export class TrafficFlowRenderer {
   private syncPipes(): void {
     if (!this.data) return
 
+    const totalDlStreams = this.data.downloadStreams || 1
+    const totalUlStreams = this.data.uploadStreams || 1
     const maxBps = Math.max(this.data.totalDownloadBps, this.data.totalUploadBps, 1)
 
     for (let i = 0; i < this.downloadPipes.length; i++) {
       const provider = this.data.downloadProviders[i]
       if (provider) {
-        this.downloadPipes[i].throughputFraction = provider.totalSpeedBps / maxBps
-        this.downloadPipes[i].from.detail = `${provider.activeStreams} streams  ${formatSpeed(provider.totalSpeedBps)}`
+        // Distribute total download Bps proportionally by stream count
+        const streamRatio = provider.activeStreams / totalDlStreams
+        const estimatedBps = this.data.totalDownloadBps * streamRatio
+        this.downloadPipes[i].throughputFraction = estimatedBps / maxBps
+        this.downloadPipes[i].from.detail = `${provider.activeStreams} streams  ${formatSpeed(estimatedBps)}`
       }
     }
 
     for (let i = 0; i < this.uploadPipes.length; i++) {
       const provider = this.data.uploadTargets[i]
       if (provider) {
-        this.uploadPipes[i].throughputFraction = provider.totalSpeedBps / maxBps
-        this.uploadPipes[i].to.detail = `${provider.activeStreams} streams  ${formatSpeed(provider.totalSpeedBps)}`
+        const streamRatio = provider.activeStreams / totalUlStreams
+        const estimatedBps = this.data.totalUploadBps * streamRatio
+        this.uploadPipes[i].throughputFraction = estimatedBps / maxBps
+        this.uploadPipes[i].to.detail = `${provider.activeStreams} streams  ${formatSpeed(estimatedBps)}`
       }
     }
   }
@@ -431,6 +438,7 @@ export class TrafficFlowRenderer {
 
     if (this.data) {
       this.drawPipes(ctx, dt)
+      this.drawSectionLabels(ctx)
       this.drawNodes(ctx)
       this.drawCenterNode(ctx)
     } else {
@@ -580,13 +588,13 @@ export class TrafficFlowRenderer {
     // Download speed
     ctx.fillStyle = COLORS.downloadAccent
     ctx.font = 'bold 20px system-ui, -apple-system, sans-serif'
-    ctx.fillText(formatSpeed(data.totalDownloadBps), cx, ty)
+    ctx.fillText('\u2193 ' + formatSpeed(data.totalDownloadBps), cx, ty)
     ty += 24
 
     // Upload speed
     ctx.fillStyle = COLORS.uploadAccent
     ctx.font = 'bold 20px system-ui, -apple-system, sans-serif'
-    ctx.fillText(formatSpeed(data.totalUploadBps), cx, ty)
+    ctx.fillText('\u2191 ' + formatSpeed(data.totalUploadBps), cx, ty)
     ty += 22
 
     // Streams
@@ -613,6 +621,31 @@ export class TrafficFlowRenderer {
     const allHealthy = data.healthyServers === data.totalServers
     ctx.fillStyle = data.totalServers === 0 ? COLORS.textDim : allHealthy ? COLORS.healthy : COLORS.warning
     ctx.fillText(`${data.healthyServers}/${data.totalServers} servers`, cx, ty)
+  }
+
+  // -----------------------------------------------------------------------
+  // Drawing: Section labels
+  // -----------------------------------------------------------------------
+
+  private drawSectionLabels(ctx: CanvasRenderingContext2D): void {
+    if (this.isMobile) return
+
+    ctx.fillStyle = COLORS.textDim
+    ctx.font = 'bold 10px system-ui, -apple-system, sans-serif'
+    ctx.textAlign = 'center'
+    ctx.textBaseline = 'middle'
+
+    // "DOWNLOAD" above left column
+    if (this.downloadNodes.length > 0) {
+      const firstNode = this.downloadNodes[0]
+      ctx.fillText('D O W N L O A D', firstNode.x + firstNode.w / 2, firstNode.y - 12)
+    }
+
+    // "UPLOAD" above right column
+    if (this.uploadNodes.length > 0) {
+      const firstNode = this.uploadNodes[0]
+      ctx.fillText('U P L O A D', firstNode.x + firstNode.w / 2, firstNode.y - 12)
+    }
   }
 
   // -----------------------------------------------------------------------

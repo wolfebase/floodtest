@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { WsStats } from '../hooks/useWebSocket'
 import { usePageVisibility } from '../hooks/usePageVisibility'
 import { api, ServerHealth, UploadServerHealth } from '../api/client'
@@ -15,6 +15,7 @@ export default function TrafficFlow({ stats }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const visible = usePageVisibility()
   const serverDataRef = useRef<{ dl: ServerHealth[]; ul: UploadServerHealth[] }>({ dl: [], ul: [] })
+  const [serverDataVersion, setServerDataVersion] = useState(0)
 
   // Initialize renderer once
   useEffect(() => {
@@ -25,18 +26,33 @@ export default function TrafficFlow({ stats }: Props) {
     return () => { rendererRef.current?.stop() }
   }, [])
 
-  // Handle container resize via ResizeObserver
+  // Handle container resize via ResizeObserver, with dynamic height based on provider count
   useEffect(() => {
     const container = containerRef.current
     if (!container) return
+
+    const computeHeight = (): number => {
+      const { dl, ul } = serverDataRef.current
+      const dlActive = dl.filter(s => s.activeStreams > 0)
+      const ulActive = ul.filter(s => s.activeStreams > 0)
+      // Estimate provider count by grouping hostnames
+      const extractDomain = (url: string) => {
+        try { return new URL(url).hostname.split('.').slice(-2).join('.') } catch { return url }
+      }
+      const dlProviders = new Set(dlActive.map(s => extractDomain(s.url)))
+      const ulProviders = new Set(ulActive.map(s => extractDomain(s.url)))
+      const maxNodes = Math.max(dlProviders.size, ulProviders.size, 1)
+      return window.innerWidth < 640 ? 400 : Math.max(300, maxNodes * 58 + 80)
+    }
+
     const observer = new ResizeObserver((entries) => {
       const { width } = entries[0].contentRect
-      const height = window.innerWidth < 640 ? 400 : 300
-      rendererRef.current?.resize(width, height)
+      rendererRef.current?.resize(width, computeHeight())
     })
     observer.observe(container)
     return () => observer.disconnect()
-  }, [])
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverDataVersion])
 
   // Start/stop animation based on tab visibility
   useEffect(() => {
@@ -56,6 +72,7 @@ export default function TrafficFlow({ stats }: Props) {
           api.getUploadServerHealth(),
         ])
         serverDataRef.current = { dl, ul }
+        setServerDataVersion(v => v + 1)
       } catch { /* ignore */ }
     }
     fetchServers()
