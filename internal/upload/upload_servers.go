@@ -7,8 +7,9 @@ import (
 )
 
 const (
-	uploadUnhealthyCooldown = 30 * time.Second
-	uploadMaxCooldown       = 5 * time.Minute
+	uploadUnhealthyCooldown   = 30 * time.Second
+	uploadMaxCooldown         = 5 * time.Minute
+	uploadSpeedSampleWindow   = 5
 )
 
 // UploadServerHealth contains the current health status of an upload server,
@@ -24,6 +25,7 @@ type UploadServerHealth struct {
 	UnhealthyUntil      time.Time `json:"unhealthyUntil,omitempty"`
 	BytesUploaded       int64     `json:"bytesUploaded"`
 	ActiveStreams       int32     `json:"activeStreams"`
+	SpeedBps            float64   `json:"speedBps"`
 	Status              string    `json:"status"`
 }
 
@@ -39,6 +41,8 @@ type uploadServer struct {
 	lastErrorTime       time.Time
 	bytesUploaded       int64
 	activeStreams       int32
+	speedScore          float64
+	speedSamples        []float64
 }
 
 // UploadServerList manages a thread-safe list of upload servers
@@ -166,6 +170,29 @@ func (sl *UploadServerList) AddBytes(url string, n int64) {
 	}
 }
 
+// UpdateSpeedScore records a speed sample (bytes per second) for the given server.
+// It maintains a rolling window of up to uploadSpeedSampleWindow samples.
+func (sl *UploadServerList) UpdateSpeedScore(url string, bps float64) {
+	sl.mu.Lock()
+	defer sl.mu.Unlock()
+
+	for i := range sl.servers {
+		if sl.servers[i].url == url {
+			s := &sl.servers[i]
+			s.speedSamples = append(s.speedSamples, bps)
+			if len(s.speedSamples) > uploadSpeedSampleWindow {
+				s.speedSamples = s.speedSamples[len(s.speedSamples)-uploadSpeedSampleWindow:]
+			}
+			var total float64
+			for _, v := range s.speedSamples {
+				total += v
+			}
+			s.speedScore = total / float64(len(s.speedSamples))
+			return
+		}
+	}
+}
+
 // IncrementStreams atomically adds one to the active stream count for a server.
 func (sl *UploadServerList) IncrementStreams(url string) {
 	sl.mu.RLock()
@@ -225,6 +252,7 @@ func (sl *UploadServerList) HealthStatus() []UploadServerHealth {
 			UnhealthyUntil:      s.unhealthyUntil,
 			BytesUploaded:       atomic.LoadInt64(&sl.servers[i].bytesUploaded),
 			ActiveStreams:       atomic.LoadInt32(&sl.servers[i].activeStreams),
+			SpeedBps:            s.speedScore,
 			Status:              status,
 		}
 	}
