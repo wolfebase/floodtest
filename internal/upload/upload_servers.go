@@ -152,7 +152,7 @@ func (sl *UploadServerList) Next() string {
 }
 
 // MarkUnhealthy marks the server identified by url as unhealthy.
-// Cooldown increases with consecutive failures: 30s * 2^(failures-1), capped at 5min.
+// Cooldown increases with consecutive failures: 30s * 2^(failures-1), capped at 10min.
 func (sl *UploadServerList) MarkUnhealthy(url, errMsg string) {
 	sl.mu.Lock()
 	defer sl.mu.Unlock()
