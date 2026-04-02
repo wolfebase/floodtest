@@ -1,4 +1,4 @@
-import { useRef, useEffect, useState } from 'react'
+import { useRef } from 'react'
 import { EngineEvent } from '../api/client'
 
 interface EngineLogProps {
@@ -23,26 +23,12 @@ const kindColor: Record<string, string> = {
 
 export default function EngineLog({ events }: EngineLogProps) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const [autoScroll, setAutoScroll] = useState(true)
-
-  useEffect(() => {
-    if (autoScroll && containerRef.current) {
-      containerRef.current.scrollTop = containerRef.current.scrollHeight
-    }
-  }, [events.length, autoScroll])
-
-  const handleScroll = () => {
-    if (!containerRef.current) return
-    const { scrollTop, scrollHeight, clientHeight } = containerRef.current
-    setAutoScroll(scrollHeight - scrollTop - clientHeight < 30)
-  }
 
   return (
     <div className="space-y-2">
       <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Engine Log</h3>
       <div
         ref={containerRef}
-        onScroll={handleScroll}
         className="h-40 overflow-y-auto space-y-0.5 scrollbar-thin scrollbar-thumb-gray-700"
       >
         {events.length === 0 ? (

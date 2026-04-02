@@ -340,6 +340,7 @@ func (e *Engine) autoAdjust(ctx context.Context) {
 			e.mu.Lock()
 			provider := e.statsProvider
 			maxConc := e.maxConcurrency
+			eb := e.eventBuf
 			e.mu.Unlock()
 
 			if provider == nil {
@@ -373,7 +374,7 @@ func (e *Engine) autoAdjust(ctx context.Context) {
 				}
 				log.Printf("download auto-adjust: added %d stream(s) (now %d, current=%dMbps, target=%dMbps)",
 					toAdd, e.activeStreams.Load(), current/1_000_000, target/1_000_000)
-				if eb := e.eventBuf; eb != nil {
+				if eb != nil {
 					eb.Add("stream", fmt.Sprintf("+%d download stream(s) → %d total", toAdd, e.activeStreams.Load()))
 				}
 				lastMaxLog = time.Time{} // reset so next cap-hit is reported immediately
@@ -381,7 +382,7 @@ func (e *Engine) autoAdjust(ctx context.Context) {
 				if time.Since(lastMaxLog) >= 60*time.Second {
 					pct := current * 100 / target
 					log.Printf("download auto-adjust: at max streams (%d), %d%% of target", active, pct)
-					if eb := e.eventBuf; eb != nil {
+					if eb != nil {
 						eb.Add("adjust", fmt.Sprintf("at max download streams (%d), %d%% of target", active, pct))
 					}
 					lastMaxLog = time.Now()

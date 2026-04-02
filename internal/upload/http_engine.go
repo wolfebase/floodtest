@@ -323,6 +323,7 @@ func (e *HTTPEngine) autoAdjust(ctx context.Context) {
 			e.mu.Lock()
 			provider := e.statsProvider
 			maxConc := e.maxConcurrency
+			eb := e.eventBuf
 			e.mu.Unlock()
 
 			if provider == nil {
@@ -341,7 +342,7 @@ func (e *HTTPEngine) autoAdjust(ctx context.Context) {
 				e.launchStream(ctx)
 				log.Printf("upload(http) auto-adjust: added stream (now %d, current=%dMbps, target=%dMbps)",
 					e.activeStreams.Load(), current/1_000_000, target/1_000_000)
-				if eb := e.eventBuf; eb != nil {
+				if eb != nil {
 					eb.Add("stream", fmt.Sprintf("+1 upload(http) stream → %d total", e.activeStreams.Load()))
 				}
 				lastMaxLog = time.Time{} // reset so next cap-hit is reported immediately
@@ -349,7 +350,7 @@ func (e *HTTPEngine) autoAdjust(ctx context.Context) {
 				if time.Since(lastMaxLog) >= 60*time.Second {
 					pct := current * 100 / target
 					log.Printf("upload(http) auto-adjust: at max streams (%d), %d%% of target", active, pct)
-					if eb := e.eventBuf; eb != nil {
+					if eb != nil {
 						eb.Add("adjust", fmt.Sprintf("at max upload(http) streams (%d), %d%% of target", active, pct))
 					}
 					lastMaxLog = time.Now()
