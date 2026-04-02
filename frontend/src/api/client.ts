@@ -127,6 +127,12 @@ export interface UploadServerHealth {
   status: string
 }
 
+export interface EngineEvent {
+  time: string
+  kind: string
+  message: string
+}
+
 export interface UpdateStatus {
   currentVersion: string
   currentBuildDate: string

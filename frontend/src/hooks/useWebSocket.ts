@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from 'react'
+import { EngineEvent } from '../api/client'
 
 export interface WsStats {
   downloadBps: number
@@ -20,6 +21,7 @@ export interface WsStats {
   ispTestRunning: boolean
   ispTestPhase: string
   ispTestProgress: number
+  events: EngineEvent[]
 }
 
 const EMPTY: WsStats = {
@@ -42,6 +44,7 @@ const EMPTY: WsStats = {
   ispTestRunning: false,
   ispTestPhase: '',
   ispTestProgress: 0,
+  events: [],
 }
 
 export function useWebSocket() {
@@ -62,8 +65,11 @@ export function useWebSocket() {
 
     ws.onmessage = (event) => {
       try {
-        const data = JSON.parse(event.data) as WsStats
-        setStats(data)
+        const data = JSON.parse(event.data)
+        setStats((prev: WsStats) => ({
+          ...data,
+          events: [...(prev.events || []), ...(data.events || [])].slice(-100),
+        }))
       } catch {
         // ignore parse errors
       }
