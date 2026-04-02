@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"sync"
@@ -23,9 +24,9 @@ type EngineController interface {
 // should run at specified speeds.
 type Schedule struct {
 	ID           int    `json:"id"`
-	DaysOfWeek   []int  `json:"daysOfWeek"`   // 0=Sun .. 6=Sat
-	StartTime    string `json:"startTime"`     // "HH:MM"
-	EndTime      string `json:"endTime"`       // "HH:MM"
+	DaysOfWeek   []int  `json:"daysOfWeek"` // 0=Sun .. 6=Sat
+	StartTime    string `json:"startTime"`  // "HH:MM"
+	EndTime      string `json:"endTime"`    // "HH:MM"
 	DownloadMbps int    `json:"downloadMbps"`
 	UploadMbps   int    `json:"uploadMbps"`
 	Enabled      bool   `json:"enabled"`
@@ -33,18 +34,20 @@ type Schedule struct {
 
 // Override constants.
 const (
-	OverrideNone      = 0
+	OverrideNone       = 0
 	OverrideForceStart = 1
 	OverrideForceStop  = 2
 )
+
+var ErrScheduleNotFound = errors.New("schedule not found")
 
 // Scheduler evaluates schedules and manual overrides to control the engines.
 type Scheduler struct {
 	db         *sql.DB
 	controller EngineController
 
-	manualOverride    atomic.Int32
-	mu                sync.Mutex
+	manualOverride     atomic.Int32
+	mu                 sync.Mutex
 	manualDownloadMbps int
 	manualUploadMbps   int
 
@@ -135,6 +138,9 @@ func (s *Scheduler) GetSchedules() ([]Schedule, error) {
 
 // CreateSchedule inserts a new schedule and returns its ID.
 func (s *Scheduler) CreateSchedule(sc Schedule) (int64, error) {
+	if err := ValidateSchedule(sc); err != nil {
+		return 0, err
+	}
 	daysJSON, err := json.Marshal(sc.DaysOfWeek)
 	if err != nil {
 		return 0, fmt.Errorf("marshal days_of_week: %w", err)
@@ -155,6 +161,9 @@ func (s *Scheduler) CreateSchedule(sc Schedule) (int64, error) {
 
 // UpdateSchedule updates an existing schedule by ID.
 func (s *Scheduler) UpdateSchedule(sc Schedule) error {
+	if err := ValidateSchedule(sc); err != nil {
+		return err
+	}
 	daysJSON, err := json.Marshal(sc.DaysOfWeek)
 	if err != nil {
 		return fmt.Errorf("marshal days_of_week: %w", err)
@@ -163,21 +172,67 @@ func (s *Scheduler) UpdateSchedule(sc Schedule) error {
 	if sc.Enabled {
 		enabledInt = 1
 	}
-	_, err = s.db.Exec(
+	res, err := s.db.Exec(
 		"UPDATE schedules SET days_of_week = ?, start_time = ?, end_time = ?, download_mbps = ?, upload_mbps = ?, enabled = ? WHERE id = ?",
 		string(daysJSON), sc.StartTime, sc.EndTime, sc.DownloadMbps, sc.UploadMbps, enabledInt, sc.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("update schedule %d: %w", sc.ID, err)
 	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("update schedule %d: %w", sc.ID, err)
+	}
+	if rows == 0 {
+		return ErrScheduleNotFound
+	}
 	return nil
 }
 
 // DeleteSchedule removes a schedule by ID.
 func (s *Scheduler) DeleteSchedule(id int) error {
-	_, err := s.db.Exec("DELETE FROM schedules WHERE id = ?", id)
+	res, err := s.db.Exec("DELETE FROM schedules WHERE id = ?", id)
 	if err != nil {
 		return fmt.Errorf("delete schedule %d: %w", id, err)
+	}
+	rows, err := res.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("delete schedule %d: %w", id, err)
+	}
+	if rows == 0 {
+		return ErrScheduleNotFound
+	}
+	return nil
+}
+
+func ValidateSchedule(sc Schedule) error {
+	if len(sc.DaysOfWeek) == 0 {
+		return fmt.Errorf("daysOfWeek must contain at least one day")
+	}
+	seenDays := make(map[int]struct{}, len(sc.DaysOfWeek))
+	for _, day := range sc.DaysOfWeek {
+		if day < 0 || day > 6 {
+			return fmt.Errorf("daysOfWeek values must be between 0 and 6")
+		}
+		seenDays[day] = struct{}{}
+	}
+	if len(seenDays) == 0 {
+		return fmt.Errorf("daysOfWeek must contain at least one day")
+	}
+	if _, err := parseHHMM(sc.StartTime); err != nil {
+		return fmt.Errorf("invalid startTime: %w", err)
+	}
+	if _, err := parseHHMM(sc.EndTime); err != nil {
+		return fmt.Errorf("invalid endTime: %w", err)
+	}
+	if sc.StartTime == sc.EndTime {
+		return fmt.Errorf("startTime and endTime must define a non-zero window")
+	}
+	if sc.DownloadMbps < 1 {
+		return fmt.Errorf("downloadMbps must be at least 1")
+	}
+	if sc.UploadMbps < 1 {
+		return fmt.Errorf("uploadMbps must be at least 1")
 	}
 	return nil
 }

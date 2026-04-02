@@ -1,13 +1,14 @@
-import { useState, useEffect } from 'react'
+import { Suspense, lazy, useEffect, useState } from 'react'
 import { BrowserRouter, Routes, Route, NavLink } from 'react-router-dom'
 import { api } from './api/client'
 import { useWebSocket } from './hooks/useWebSocket'
 import Dashboard from './components/Dashboard'
-import Charts from './components/Charts'
-import SchedulePage from './components/Schedule'
-import SettingsPage from './components/Settings'
-import SetupWizard from './components/SetupWizard'
-import UpdatesPage from './components/Updates'
+
+const Charts = lazy(() => import('./components/Charts'))
+const SchedulePage = lazy(() => import('./components/Schedule'))
+const SettingsPage = lazy(() => import('./components/Settings'))
+const SetupWizard = lazy(() => import('./components/SetupWizard'))
+const UpdatesPage = lazy(() => import('./components/Updates'))
 
 function NavBar() {
   const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -36,6 +37,17 @@ function NavBar() {
   )
 }
 
+function ScreenLoader() {
+  return (
+    <div className="flex items-center justify-center h-screen bg-gray-950">
+      <div className="text-center">
+        <div className="text-lg font-bold text-blue-400 mb-2">FloodTest</div>
+        <div className="text-gray-400 text-sm">Loading...</div>
+      </div>
+    </div>
+  )
+}
+
 export default function App() {
   const [setupRequired, setSetupRequired] = useState<boolean | null>(null)
   const [setupDone, setSetupDone] = useState(false)
@@ -48,33 +60,32 @@ export default function App() {
   }, [])
 
   if (setupRequired === null) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-gray-950">
-        <div className="text-center">
-          <div className="text-lg font-bold text-blue-400 mb-2">FloodTest</div>
-          <div className="text-gray-400 text-sm">Loading...</div>
-        </div>
-      </div>
-    )
+    return <ScreenLoader />
   }
 
   if (setupRequired && !setupDone) {
-    return <SetupWizard onComplete={() => setSetupDone(true)} />
+    return (
+      <Suspense fallback={<ScreenLoader />}>
+        <SetupWizard onComplete={() => setSetupDone(true)} />
+      </Suspense>
+    )
   }
 
   return (
     <BrowserRouter>
       <div className="min-h-screen bg-gray-950">
         <NavBar />
-        <main className="p-6 max-w-7xl mx-auto">
-          <Routes>
-            <Route path="/" element={<Dashboard ws={ws} />} />
-            <Route path="/charts" element={<Charts />} />
-            <Route path="/schedule" element={<SchedulePage />} />
-            <Route path="/settings" element={<SettingsPage />} />
-            <Route path="/updates" element={<UpdatesPage />} />
-          </Routes>
-        </main>
+        <Suspense fallback={<ScreenLoader />}>
+          <main className="p-6 max-w-7xl mx-auto">
+            <Routes>
+              <Route path="/" element={<Dashboard ws={ws} />} />
+              <Route path="/charts" element={<Charts />} />
+              <Route path="/schedule" element={<SchedulePage />} />
+              <Route path="/settings" element={<SettingsPage />} />
+              <Route path="/updates" element={<UpdatesPage />} />
+            </Routes>
+          </main>
+        </Suspense>
       </div>
     </BrowserRouter>
   )

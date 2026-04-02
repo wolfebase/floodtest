@@ -9,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -269,15 +270,29 @@ docker rm -f floodtest-updater 2>/dev/null || true
 }
 
 func (u *Updater) SetAutoUpdate(enabled bool, schedule string) error {
+	schedule = strings.TrimSpace(schedule)
+	switch schedule {
+	case "", "daily", "weekly", "monthly":
+	default:
+		return fmt.Errorf("invalid auto-update schedule: %q", schedule)
+	}
+	if enabled && schedule == "" {
+		return fmt.Errorf("auto-update schedule is required when auto-update is enabled")
+	}
+
 	u.mu.Lock()
 	u.autoEnabled = enabled
 	u.autoSchedule = schedule
 	u.mu.Unlock()
 	if u.db != nil {
-		u.db.Exec("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-			"auto_update_enabled", fmt.Sprintf("%v", enabled))
-		u.db.Exec("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
-			"auto_update_schedule", schedule)
+		if _, err := u.db.Exec("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+			"auto_update_enabled", fmt.Sprintf("%v", enabled)); err != nil {
+			return fmt.Errorf("save auto_update_enabled: %w", err)
+		}
+		if _, err := u.db.Exec("INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value",
+			"auto_update_schedule", schedule); err != nil {
+			return fmt.Errorf("save auto_update_schedule: %w", err)
+		}
 	}
 	return nil
 }

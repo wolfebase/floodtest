@@ -29,6 +29,8 @@ var DefaultServerEntries = []ServerEntry{
 
 	// --- OVH (France) — 10 GB ---
 	{"http://proof.ovh.net/files/10Gb.dat", "Gravelines, FR"},
+	{"http://rbx-proof.ovh.net/files/10Gb.dat", "Roubaix, FR"},
+	{"http://gra-proof.ovh.net/files/10Gb.dat", "Gravelines, FR"},
 
 	// --- Leaseweb (US) — 10 GB ---
 	{"http://mirror.us.leaseweb.net/speedtest/10000mb.bin", "Manassas, VA, US"},
@@ -36,9 +38,8 @@ var DefaultServerEntries = []ServerEntry{
 	{"http://mirror.sfo12.us.leaseweb.net/speedtest/10000mb.bin", "San Francisco, CA, US"},
 	{"http://mirror.dal10.us.leaseweb.net/speedtest/10000mb.bin", "Dallas, TX, US"},
 
-	// --- Scaleway / Online.net (France) — 10 GB ---
+	// --- Online.net (France) — 10 GB ---
 	{"http://ping.online.net/10000Mo.dat", "Paris, FR"},
-	{"http://scaleway.testdebit.info/10G.iso", "Paris, FR"},
 
 	// --- European Providers — large files ---
 	{"http://speedtest.belwue.net/10G", "Stuttgart, DE"},
@@ -93,8 +94,24 @@ var DefaultServerEntries = []ServerEntry{
 	// --- Vultr additional EU (1 GB) ---
 	{"http://lon-gb-ping.vultr.com/vultr.com.1000MB.bin", "London, UK"},
 
-	// --- Hetzner US West (10 GB) ---
-	{"http://hil-speed.hetzner.com/10GB.bin", "Hillsboro, OR, US"},
+	// --- i3D (Netherlands) — 10 GB ---
+	{"http://mirror.i3d.net/10000mb.bin", "Rotterdam, NL"},
+
+	// --- BuyVM / Frantech — 1-10 GB ---
+	{"https://speedtest.ny.buyvm.net/10000MB.test", "New York, NY, US"},
+	{"https://speedtest.mia.buyvm.net/1000MB.test", "Miami, FL, US"},
+	{"https://speedtest.lv.buyvm.net/1000MB.test", "Las Vegas, NV, US"},
+	{"https://speedtest.lu.buyvm.net/1000MB.test", "Luxembourg, LU"},
+
+	// --- RackNerd — 1 GB ---
+	{"https://lg-dal.racknerd.com/test_files/1GB.test", "Dallas, TX, US"},
+	{"https://lg-chi.racknerd.com/test_files/1GB.test", "Chicago, IL, US"},
+	{"https://lg-ny.racknerd.com/test_files/1GB.test", "New York, NY, US"},
+	{"https://lg-lax02.racknerd.com/test_files/1GB.test", "Los Angeles, CA, US"},
+	{"https://lg-sj.racknerd.com/test_files/1GB.test", "San Jose, CA, US"},
+
+	// --- WebNX — 10 GB ---
+	{"https://mirrors-lax.webnx.com/test/10gb.bin", "Los Angeles, CA, US"},
 }
 
 // DefaultServers is the flat URL list derived from DefaultServerEntries.

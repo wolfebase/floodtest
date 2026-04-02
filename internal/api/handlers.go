@@ -4,11 +4,14 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"strconv"
+	"strings"
 	"time"
 
 	"wansaturator/internal/config"
@@ -22,12 +25,12 @@ type App struct {
 	Hub       *WsHub
 
 	// Callbacks set by main
-	OnStart func(downloadMbps, uploadMbps int) error
-	OnStop  func()
-	IsRunning func() bool
-	GetDownloadStreams func() int
-	GetUploadStreams   func() int
-	GetSessionStart   func() time.Time
+	OnStart                 func(downloadMbps, uploadMbps int) error
+	OnStop                  func()
+	IsRunning               func() bool
+	GetDownloadStreams      func() int
+	GetUploadStreams        func() int
+	GetSessionStart         func() time.Time
 	GetSessionDownloadBytes func() int64
 	GetSessionUploadBytes   func() int64
 	GetCurrentDownloadBps   func() int64
@@ -46,6 +49,32 @@ type App struct {
 	GetUpdateHistory        func() interface{}
 }
 
+type badRequestError struct {
+	msg string
+}
+
+func (e *badRequestError) Error() string {
+	return e.msg
+}
+
+type settingsUpdateRequest struct {
+	B2KeyID              *string   `json:"b2KeyId"`
+	B2AppKey             *string   `json:"b2AppKey"`
+	B2BucketName         *string   `json:"b2BucketName"`
+	B2Endpoint           *string   `json:"b2Endpoint"`
+	DefaultDownloadMbps  *int      `json:"defaultDownloadMbps"`
+	DefaultUploadMbps    *int      `json:"defaultUploadMbps"`
+	DownloadConcurrency  *int      `json:"downloadConcurrency"`
+	UploadConcurrency    *int      `json:"uploadConcurrency"`
+	UploadChunkSizeMB    *int      `json:"uploadChunkSizeMb"`
+	ThrottleThresholdPct *int      `json:"throttleThresholdPct"`
+	ThrottleWindowMin    *int      `json:"throttleWindowMin"`
+	DownloadServers      *[]string `json:"downloadServers"`
+	UploadMode           *string   `json:"uploadMode"`
+	UploadEndpoints      *[]string `json:"uploadEndpoints"`
+	AutoMode             *string   `json:"autoMode"`
+}
+
 func writeJSON(w http.ResponseWriter, v interface{}) {
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(v)
@@ -55,6 +84,182 @@ func writeError(w http.ResponseWriter, code int, msg string) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
 	json.NewEncoder(w).Encode(map[string]string{"error": msg})
+}
+
+func newBadRequestError(format string, args ...interface{}) error {
+	return &badRequestError{msg: fmt.Sprintf(format, args...)}
+}
+
+func isBadRequest(err error) bool {
+	var target *badRequestError
+	return errors.As(err, &target)
+}
+
+func decodeJSONBody(r *http.Request, dst interface{}, allowEmpty bool) error {
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+
+	if err := decoder.Decode(dst); err != nil {
+		if allowEmpty && errors.Is(err, io.EOF) {
+			return nil
+		}
+		return newBadRequestError("invalid request body")
+	}
+
+	var extra struct{}
+	if err := decoder.Decode(&extra); err != io.EOF {
+		return newBadRequestError("invalid request body")
+	}
+	return nil
+}
+
+func cleanURLList(values []string) []string {
+	seen := make(map[string]struct{}, len(values))
+	cleaned := make([]string, 0, len(values))
+	for _, value := range values {
+		value = strings.TrimSpace(value)
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		cleaned = append(cleaned, value)
+	}
+	return cleaned
+}
+
+func validateAbsoluteURL(fieldName, value string) error {
+	parsed, err := url.ParseRequestURI(value)
+	if err != nil || parsed.Host == "" {
+		return newBadRequestError("%s must be a valid URL", fieldName)
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return newBadRequestError("%s must use http or https", fieldName)
+	}
+	return nil
+}
+
+func validateURLList(fieldName string, values []string) ([]string, error) {
+	cleaned := cleanURLList(values)
+	if len(cleaned) == 0 {
+		return nil, newBadRequestError("%s must contain at least one URL", fieldName)
+	}
+	for _, value := range cleaned {
+		if err := validateAbsoluteURL(fieldName, value); err != nil {
+			return nil, err
+		}
+	}
+	return cleaned, nil
+}
+
+func validateMin(fieldName string, value, min int) error {
+	if value < min {
+		return newBadRequestError("%s must be at least %d", fieldName, min)
+	}
+	return nil
+}
+
+func validateRange(fieldName string, value, min, max int) error {
+	if value < min || value > max {
+		return newBadRequestError("%s must be between %d and %d", fieldName, min, max)
+	}
+	return nil
+}
+
+func validateUploadMode(mode string) error {
+	switch mode {
+	case config.UploadModeS3, config.UploadModeHTTP, config.UploadModeLocal:
+		return nil
+	default:
+		return newBadRequestError("uploadMode must be one of %q, %q, or %q", config.UploadModeS3, config.UploadModeHTTP, config.UploadModeLocal)
+	}
+}
+
+func validateAutoMode(mode string) error {
+	switch mode {
+	case config.AutoModeReliable, config.AutoModeMax:
+		return nil
+	default:
+		return newBadRequestError("autoMode must be one of %q or %q", config.AutoModeReliable, config.AutoModeMax)
+	}
+}
+
+func validateAutoUpdateSchedule(enabled bool, schedule string) error {
+	if schedule == "" {
+		if enabled {
+			return newBadRequestError("schedule is required when auto-update is enabled")
+		}
+		return nil
+	}
+	switch schedule {
+	case "daily", "weekly", "monthly":
+		return nil
+	default:
+		return newBadRequestError("schedule must be one of %q, %q, or %q", "daily", "weekly", "monthly")
+	}
+}
+
+func validateSettingsSnapshot(cfg *config.Snapshot) error {
+	if err := validateMin("defaultDownloadMbps", cfg.DefaultDownloadMbps, 1); err != nil {
+		return err
+	}
+	if err := validateMin("defaultUploadMbps", cfg.DefaultUploadMbps, 1); err != nil {
+		return err
+	}
+	if err := validateMin("downloadConcurrency", cfg.DownloadConcurrency, 1); err != nil {
+		return err
+	}
+	if err := validateMin("uploadConcurrency", cfg.UploadConcurrency, 1); err != nil {
+		return err
+	}
+	if err := validateMin("uploadChunkSizeMb", cfg.UploadChunkSizeMB, 1); err != nil {
+		return err
+	}
+	if err := validateRange("throttleThresholdPct", cfg.ThrottleThresholdPct, 1, 100); err != nil {
+		return err
+	}
+	if err := validateMin("throttleWindowMin", cfg.ThrottleWindowMin, 1); err != nil {
+		return err
+	}
+	if err := validateUploadMode(cfg.UploadMode); err != nil {
+		return err
+	}
+	if err := validateAutoMode(cfg.AutoMode); err != nil {
+		return err
+	}
+
+	servers, err := validateURLList("downloadServers", cfg.DownloadServers)
+	if err != nil {
+		return err
+	}
+	cfg.DownloadServers = servers
+
+	if cfg.UploadMode == config.UploadModeHTTP {
+		endpoints, err := validateURLList("uploadEndpoints", cfg.UploadEndpoints)
+		if err != nil {
+			return err
+		}
+		cfg.UploadEndpoints = endpoints
+	} else if len(cfg.UploadEndpoints) > 0 {
+		endpoints, err := validateURLList("uploadEndpoints", cfg.UploadEndpoints)
+		if err != nil {
+			return err
+		}
+		cfg.UploadEndpoints = endpoints
+	}
+
+	if cfg.B2Endpoint != "" {
+		if err := validateAbsoluteURL("b2Endpoint", cfg.B2Endpoint); err != nil {
+			return err
+		}
+	}
+	if cfg.UploadMode == config.UploadModeS3 && cfg.B2Endpoint == "" {
+		return newBadRequestError("b2Endpoint is required when uploadMode is %q", config.UploadModeS3)
+	}
+
+	return nil
 }
 
 func (a *App) HandleStatus(w http.ResponseWriter, r *http.Request) {
@@ -90,8 +295,8 @@ func (a *App) HandleStatus(w http.ResponseWriter, r *http.Request) {
 		"running":              running,
 		"downloadBps":          dlBps,
 		"uploadBps":            ulBps,
-		"downloadStreams":       dlStreams,
-		"uploadStreams":         ulStreams,
+		"downloadStreams":      dlStreams,
+		"uploadStreams":        ulStreams,
 		"uptimeSeconds":        uptimeSeconds,
 		"overrideState":        a.Scheduler.GetOverrideState(),
 		"targetDownloadMbps":   cfg.DefaultDownloadMbps,
@@ -107,25 +312,36 @@ func (a *App) HandleStart(w http.ResponseWriter, r *http.Request) {
 		DownloadMbps *int `json:"downloadMbps"`
 		UploadMbps   *int `json:"uploadMbps"`
 	}
-	json.NewDecoder(r.Body).Decode(&req)
+	if err := decodeJSONBody(r, &req, true); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
 
 	cfg := a.Config.Get()
 	dlMbps := cfg.DefaultDownloadMbps
 	ulMbps := cfg.DefaultUploadMbps
 	if req.DownloadMbps != nil {
+		if err := validateMin("downloadMbps", *req.DownloadMbps, 1); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
 		dlMbps = *req.DownloadMbps
 	}
 	if req.UploadMbps != nil {
+		if err := validateMin("uploadMbps", *req.UploadMbps, 1); err != nil {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
 		ulMbps = *req.UploadMbps
 	}
 
-	a.Scheduler.ManualStart(dlMbps, ulMbps)
 	if a.OnStart != nil {
 		if err := a.OnStart(dlMbps, ulMbps); err != nil {
 			writeError(w, 500, err.Error())
 			return
 		}
 	}
+	a.Scheduler.ManualStart(dlMbps, ulMbps)
 	writeJSON(w, map[string]string{"status": "started"})
 }
 
@@ -263,8 +479,12 @@ func (a *App) HandleGetSchedules(w http.ResponseWriter, r *http.Request) {
 
 func (a *App) HandleCreateSchedule(w http.ResponseWriter, r *http.Request) {
 	var s scheduler.Schedule
-	if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
-		writeError(w, 400, "invalid request body")
+	if err := decodeJSONBody(r, &s, false); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := scheduler.ValidateSchedule(s); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	id, err := a.Scheduler.CreateSchedule(s)
@@ -284,12 +504,20 @@ func (a *App) HandleUpdateSchedule(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var s scheduler.Schedule
-	if err := json.NewDecoder(r.Body).Decode(&s); err != nil {
-		writeError(w, 400, "invalid request body")
+	if err := decodeJSONBody(r, &s, false); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	if err := scheduler.ValidateSchedule(s); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	s.ID = id
 	if err := a.Scheduler.UpdateSchedule(s); err != nil {
+		if errors.Is(err, scheduler.ErrScheduleNotFound) {
+			writeError(w, http.StatusNotFound, err.Error())
+			return
+		}
 		writeError(w, 500, err.Error())
 		return
 	}
@@ -304,6 +532,10 @@ func (a *App) HandleDeleteSchedule(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if err := a.Scheduler.DeleteSchedule(id); err != nil {
+		if errors.Is(err, scheduler.ErrScheduleNotFound) {
+			writeError(w, http.StatusNotFound, err.Error())
+			return
+		}
 		writeError(w, 500, err.Error())
 		return
 	}
@@ -316,88 +548,105 @@ func (a *App) HandleGetSettings(w http.ResponseWriter, r *http.Request) {
 }
 
 func (a *App) HandleUpdateSettings(w http.ResponseWriter, r *http.Request) {
-	var updates map[string]interface{}
-	if err := json.NewDecoder(r.Body).Decode(&updates); err != nil {
-		writeError(w, 400, "invalid request body")
+	var updates settingsUpdateRequest
+	if err := decodeJSONBody(r, &updates, false); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 
-	cfg := a.Config
-
-	if v, ok := updates["b2KeyId"]; ok {
-		cfg.B2KeyID = fmt.Sprint(v)
-	}
-	if v, ok := updates["b2AppKey"]; ok {
-		cfg.B2AppKey = fmt.Sprint(v)
-	}
-	if v, ok := updates["b2BucketName"]; ok {
-		cfg.B2BucketName = fmt.Sprint(v)
-	}
-	if v, ok := updates["b2Endpoint"]; ok {
-		cfg.B2Endpoint = fmt.Sprint(v)
-	}
-	if v, ok := updates["defaultDownloadMbps"]; ok {
-		if n, err := toInt(v); err == nil {
-			cfg.DefaultDownloadMbps = n
+	err := a.Config.Update(func(cfg *config.Snapshot) error {
+		if updates.B2KeyID != nil {
+			cfg.B2KeyID = strings.TrimSpace(*updates.B2KeyID)
 		}
-	}
-	if v, ok := updates["defaultUploadMbps"]; ok {
-		if n, err := toInt(v); err == nil {
-			cfg.DefaultUploadMbps = n
+		if updates.B2AppKey != nil {
+			cfg.B2AppKey = strings.TrimSpace(*updates.B2AppKey)
 		}
-	}
-	if v, ok := updates["downloadConcurrency"]; ok {
-		if n, err := toInt(v); err == nil {
-			cfg.DownloadConcurrency = n
+		if updates.B2BucketName != nil {
+			cfg.B2BucketName = strings.TrimSpace(*updates.B2BucketName)
 		}
-	}
-	if v, ok := updates["uploadConcurrency"]; ok {
-		if n, err := toInt(v); err == nil {
-			cfg.UploadConcurrency = n
+		if updates.B2Endpoint != nil {
+			cfg.B2Endpoint = strings.TrimSpace(*updates.B2Endpoint)
 		}
-	}
-	if v, ok := updates["uploadChunkSizeMb"]; ok {
-		if n, err := toInt(v); err == nil {
-			cfg.UploadChunkSizeMB = n
+		if updates.DefaultDownloadMbps != nil {
+			if err := validateMin("defaultDownloadMbps", *updates.DefaultDownloadMbps, 1); err != nil {
+				return err
+			}
+			cfg.DefaultDownloadMbps = *updates.DefaultDownloadMbps
 		}
-	}
-	if v, ok := updates["throttleThresholdPct"]; ok {
-		if n, err := toInt(v); err == nil {
-			cfg.ThrottleThresholdPct = n
+		if updates.DefaultUploadMbps != nil {
+			if err := validateMin("defaultUploadMbps", *updates.DefaultUploadMbps, 1); err != nil {
+				return err
+			}
+			cfg.DefaultUploadMbps = *updates.DefaultUploadMbps
 		}
-	}
-	if v, ok := updates["throttleWindowMin"]; ok {
-		if n, err := toInt(v); err == nil {
-			cfg.ThrottleWindowMin = n
+		if updates.DownloadConcurrency != nil {
+			if err := validateMin("downloadConcurrency", *updates.DownloadConcurrency, 1); err != nil {
+				return err
+			}
+			cfg.DownloadConcurrency = *updates.DownloadConcurrency
 		}
-	}
-	if v, ok := updates["downloadServers"]; ok {
-		if arr, ok := v.([]interface{}); ok {
-			servers := make([]string, 0, len(arr))
-			for _, s := range arr {
-				servers = append(servers, fmt.Sprint(s))
+		if updates.UploadConcurrency != nil {
+			if err := validateMin("uploadConcurrency", *updates.UploadConcurrency, 1); err != nil {
+				return err
+			}
+			cfg.UploadConcurrency = *updates.UploadConcurrency
+		}
+		if updates.UploadChunkSizeMB != nil {
+			if err := validateMin("uploadChunkSizeMb", *updates.UploadChunkSizeMB, 1); err != nil {
+				return err
+			}
+			cfg.UploadChunkSizeMB = *updates.UploadChunkSizeMB
+		}
+		if updates.ThrottleThresholdPct != nil {
+			if err := validateRange("throttleThresholdPct", *updates.ThrottleThresholdPct, 1, 100); err != nil {
+				return err
+			}
+			cfg.ThrottleThresholdPct = *updates.ThrottleThresholdPct
+		}
+		if updates.ThrottleWindowMin != nil {
+			if err := validateMin("throttleWindowMin", *updates.ThrottleWindowMin, 1); err != nil {
+				return err
+			}
+			cfg.ThrottleWindowMin = *updates.ThrottleWindowMin
+		}
+		if updates.DownloadServers != nil {
+			servers, err := validateURLList("downloadServers", *updates.DownloadServers)
+			if err != nil {
+				return err
 			}
 			cfg.DownloadServers = servers
 		}
-	}
-	if v, ok := updates["uploadMode"]; ok {
-		cfg.UploadMode = fmt.Sprint(v)
-	}
-	if v, ok := updates["uploadEndpoints"]; ok {
-		if arr, ok := v.([]interface{}); ok {
-			endpoints := make([]string, 0, len(arr))
-			for _, s := range arr {
-				endpoints = append(endpoints, fmt.Sprint(s))
+		if updates.UploadMode != nil {
+			mode := strings.TrimSpace(*updates.UploadMode)
+			if err := validateUploadMode(mode); err != nil {
+				return err
+			}
+			cfg.UploadMode = mode
+		}
+		if updates.UploadEndpoints != nil {
+			endpoints := cleanURLList(*updates.UploadEndpoints)
+			for _, endpoint := range endpoints {
+				if err := validateAbsoluteURL("uploadEndpoints", endpoint); err != nil {
+					return err
+				}
 			}
 			cfg.UploadEndpoints = endpoints
 		}
-	}
-	if v, ok := updates["autoMode"]; ok {
-		cfg.AutoMode = fmt.Sprint(v)
-	}
-
-	if err := cfg.Save(); err != nil {
-		writeError(w, 500, err.Error())
+		if updates.AutoMode != nil {
+			mode := strings.TrimSpace(*updates.AutoMode)
+			if err := validateAutoMode(mode); err != nil {
+				return err
+			}
+			cfg.AutoMode = mode
+		}
+		return validateSettingsSnapshot(cfg)
+	})
+	if err != nil {
+		if isBadRequest(err) {
+			writeError(w, http.StatusBadRequest, err.Error())
+			return
+		}
+		writeError(w, http.StatusInternalServerError, err.Error())
 		return
 	}
 	writeJSON(w, map[string]string{"status": "saved"})
@@ -454,8 +703,17 @@ func (a *App) HandleUnblockServer(w http.ResponseWriter, r *http.Request) {
 	var req struct {
 		URL string `json:"url"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || req.URL == "" {
-		writeError(w, 400, "invalid request: url required")
+	if err := decodeJSONBody(r, &req, false); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	req.URL = strings.TrimSpace(req.URL)
+	if req.URL == "" {
+		writeError(w, http.StatusBadRequest, "url is required")
+		return
+	}
+	if err := validateAbsoluteURL("url", req.URL); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	if a.UnblockServer != nil && a.UnblockServer(req.URL) {
@@ -501,19 +759,6 @@ func (a *App) HandleSetupRequired(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-func toInt(v interface{}) (int, error) {
-	switch val := v.(type) {
-	case float64:
-		return int(val), nil
-	case string:
-		return strconv.Atoi(val)
-	case int:
-		return val, nil
-	default:
-		return 0, fmt.Errorf("cannot convert %T to int", v)
-	}
-}
-
 func (a *App) HandleUpdateStatus(w http.ResponseWriter, r *http.Request) {
 	if a.GetUpdateStatus != nil {
 		writeJSON(w, a.GetUpdateStatus())
@@ -552,12 +797,20 @@ func (a *App) HandleSetAutoUpdate(w http.ResponseWriter, r *http.Request) {
 		Enabled  bool   `json:"enabled"`
 		Schedule string `json:"schedule"`
 	}
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		writeError(w, 400, "invalid request")
+	if err := decodeJSONBody(r, &req, false); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
+		return
+	}
+	req.Schedule = strings.TrimSpace(req.Schedule)
+	if err := validateAutoUpdateSchedule(req.Enabled, req.Schedule); err != nil {
+		writeError(w, http.StatusBadRequest, err.Error())
 		return
 	}
 	if a.SetAutoUpdate != nil {
-		a.SetAutoUpdate(req.Enabled, req.Schedule)
+		if err := a.SetAutoUpdate(req.Enabled, req.Schedule); err != nil {
+			writeError(w, http.StatusInternalServerError, err.Error())
+			return
+		}
 	}
 	writeJSON(w, map[string]string{"status": "saved"})
 }

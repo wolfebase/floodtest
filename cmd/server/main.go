@@ -148,7 +148,10 @@ func main() {
 			if err != nil {
 				log.Printf("ISP speed test failed: %v — using config defaults", err)
 			} else {
-				dlMbps, ulMbps = autoConfigFromSpeedTest(result, cfg)
+				dlMbps, ulMbps, err = autoConfigFromSpeedTest(result, cfg)
+				if err != nil {
+					log.Printf("Auto-config save failed: %v", err)
+				}
 				cfgNow = cfg.Get()
 				log.Printf("Auto-configured: %dMbps down, %dMbps up (%d/%d streams)",
 					dlMbps, ulMbps, cfgNow.DownloadConcurrency, cfgNow.UploadConcurrency)
@@ -239,8 +242,8 @@ func main() {
 
 	// Initialize scheduler
 	controller := &engineController{
-		start: startEngines,
-		stop:  stopEngines,
+		start:     startEngines,
+		stop:      stopEngines,
 		isRunning: func() bool { return running.Load() },
 	}
 	sched := scheduler.NewScheduler(database, controller)
@@ -286,9 +289,9 @@ func main() {
 		GetSessionUploadBytes:   func() int64 { return collector.SessionUploadBytes() },
 		GetCurrentDownloadBps:   func() int64 { return collector.CurrentRate().DownloadBps },
 		GetCurrentUploadBps:     func() int64 { return collector.CurrentRate().UploadBps },
-		GetServerHealth:  func() interface{} { return serverList.HealthStatus() },
-		UnblockServer:    func(url string) bool { return serverList.UnblockServer(url) },
-		UnblockAll:       func() int { return serverList.UnblockAll() },
+		GetServerHealth:         func() interface{} { return serverList.HealthStatus() },
+		UnblockServer:           func(url string) bool { return serverList.UnblockServer(url) },
+		UnblockAll:              func() int { return serverList.UnblockAll() },
 		RunSpeedTest: func(ctx context.Context) interface{} {
 			return serverList.RunSpeedTest(ctx, func(p download.SpeedTestProgress) {
 				speedTestRunning.Store(p.Running)
@@ -342,7 +345,9 @@ func main() {
 		if err != nil {
 			return nil, err
 		}
-		autoConfigFromSpeedTest(result, cfg)
+		if _, _, err := autoConfigFromSpeedTest(result, cfg); err != nil {
+			return nil, err
+		}
 		return result, nil
 	}
 
@@ -369,8 +374,8 @@ func main() {
 				hub.Broadcast(api.WsMessage{
 					DownloadBps:          dlBps,
 					UploadBps:            ulBps,
-					DownloadStreams:       app.GetDownloadStreams(),
-					UploadStreams:         app.GetUploadStreams(),
+					DownloadStreams:      app.GetDownloadStreams(),
+					UploadStreams:        app.GetUploadStreams(),
 					UptimeSeconds:        uptime,
 					Running:              isRunning,
 					SessionDownloadBytes: collector.SessionDownloadBytes(),
@@ -420,7 +425,9 @@ func main() {
 				if err != nil {
 					log.Printf("Periodic speed test failed: %v — resuming with current settings", err)
 				} else {
-					autoConfigFromSpeedTest(result, cfg)
+					if _, _, err := autoConfigFromSpeedTest(result, cfg); err != nil {
+						log.Printf("Periodic speed test save failed: %v", err)
+					}
 				}
 				cfgNow = cfg.Get()
 				startEngines(cfgNow.DefaultDownloadMbps, cfgNow.DefaultUploadMbps)
@@ -462,7 +469,7 @@ func main() {
 	log.Println("Shutdown complete")
 }
 
-func autoConfigFromSpeedTest(result *speedtest.Result, cfg *config.Config) (dlMbps, ulMbps int) {
+func autoConfigFromSpeedTest(result *speedtest.Result, cfg *config.Config) (dlMbps, ulMbps int, err error) {
 	dlMbps = int(result.DownloadMbps * 0.9)
 	ulMbps = int(result.UploadMbps * 0.9)
 	if dlMbps < 10 {
@@ -487,15 +494,16 @@ func autoConfigFromSpeedTest(result *speedtest.Result, cfg *config.Config) (dlMb
 		ulStreams = 32
 	}
 
-	cfg.MeasuredDownloadMbps = result.DownloadMbps
-	cfg.MeasuredUploadMbps = result.UploadMbps
-	cfg.LastSpeedTestTime = time.Now().UTC().Format(time.RFC3339)
-	cfg.DefaultDownloadMbps = dlMbps
-	cfg.DefaultUploadMbps = ulMbps
-	cfg.DownloadConcurrency = dlStreams
-	cfg.UploadConcurrency = ulStreams
-	cfg.Save()
-
+	err = cfg.Update(func(snapshot *config.Snapshot) error {
+		snapshot.MeasuredDownloadMbps = result.DownloadMbps
+		snapshot.MeasuredUploadMbps = result.UploadMbps
+		snapshot.LastSpeedTestTime = time.Now().UTC().Format(time.RFC3339)
+		snapshot.DefaultDownloadMbps = dlMbps
+		snapshot.DefaultUploadMbps = ulMbps
+		snapshot.DownloadConcurrency = dlStreams
+		snapshot.UploadConcurrency = ulStreams
+		return nil
+	})
 	return
 }
 
@@ -523,4 +531,3 @@ func (c *engineController) StopEngines() {
 func (c *engineController) IsRunning() bool {
 	return c.isRunning()
 }
-
