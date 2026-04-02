@@ -98,3 +98,7 @@ OWASP audit completed 2026-04-01. **3 CRITICAL findings remain unpatched:**
 3. Unauthenticated Docker socket access via update API
 
 See `docs/plans/` or auto memory for full findings. Security hardening should precede new features.
+
+<!-- MEMORY:START -->
+<!-- Automatically maintained by memory-mcp. Do not edit manually. -->
+<!-- MEMORY:END -->
