@@ -18,7 +18,7 @@ test.describe('Settings', () => {
   test('loads settings page', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('link', { name: /settings/i }).click()
-    await expect(page.locator('text=Download (Mbps)')).toBeVisible()
+    await expect(page.getByText('Download (Mbps)', { exact: true })).toBeVisible()
   })
 })
 
@@ -26,7 +26,7 @@ test.describe('Schedule', () => {
   test('loads schedule page', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('link', { name: /schedule/i }).click()
-    await expect(page.locator('text=Schedule')).toBeVisible()
+    await expect(page.getByRole('heading', { name: 'Schedule' })).toBeVisible()
   })
 })
 
