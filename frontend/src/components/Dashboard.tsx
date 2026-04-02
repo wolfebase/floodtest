@@ -205,28 +205,10 @@ export default function Dashboard({ ws }: DashboardProps) {
                 {savingManual ? '...' : 'Apply'}
               </button>
             </div>
-            <p className="text-xs text-gray-600">Enter your ISP speeds. Targets are set to 90% of these values.</p>
-
-            {/* Divider */}
-            <div className="flex items-center gap-2">
-              <div className="flex-1 border-t border-gray-800" />
-              <span className="text-xs text-gray-600">or</span>
-              <div className="flex-1 border-t border-gray-800" />
-            </div>
-
-            {/* Speed test option */}
-            <button
-              onClick={() => handleModeChange('reliable')}
-              disabled={stats.ispTestRunning}
-              className="w-full px-4 py-2 rounded-lg text-sm font-medium bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-700 disabled:opacity-50"
-            >
-              {stats.ispTestRunning ? 'Running speed test...' : 'Run Speed Test'}
-            </button>
-            {hasMeasurements && (
-              <p className="text-xs text-gray-600">
-                Last test: {Math.round(stats.measuredDownloadMbps)} Mbps down / {Math.round(stats.measuredUploadMbps)} Mbps up
-              </p>
-            )}
+            <p className="text-xs text-gray-600">
+              Enter your ISP speeds. Targets are set to 90% of these values.
+              {'\n'}If not set, a speed test runs automatically on first start.
+            </p>
           </div>
         </div>
 

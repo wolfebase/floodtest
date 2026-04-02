@@ -135,26 +135,33 @@ func main() {
 		// Auto-mode handling
 		switch cfgNow.AutoMode {
 		case config.AutoModeReliable:
-			// Run ISP speed test to auto-configure
-			ispTestRunning.Store(true)
-			result, err := speedtest.RunISPTest(ctx, func(phase string, pct int) {
-				ispTestPhase.Store(phase)
-				ispTestProgress.Store(int32(pct))
-			})
-			ispTestRunning.Store(false)
-			ispTestPhase.Store("")
-			ispTestProgress.Store(0)
+			// Only run ISP speed test if the user hasn't manually set speeds.
+			// A non-default value (> 10 Mbps) means the user configured it.
+			if cfgNow.DefaultDownloadMbps <= 10 && cfgNow.DefaultUploadMbps <= 10 {
+				log.Println("No speeds configured — running ISP speed test...")
+				ispTestRunning.Store(true)
+				result, err := speedtest.RunISPTest(ctx, func(phase string, pct int) {
+					ispTestPhase.Store(phase)
+					ispTestProgress.Store(int32(pct))
+				})
+				ispTestRunning.Store(false)
+				ispTestPhase.Store("")
+				ispTestProgress.Store(0)
 
-			if err != nil {
-				log.Printf("ISP speed test failed: %v — using config defaults", err)
-			} else {
-				dlMbps, ulMbps, err = autoConfigFromSpeedTest(result, cfg)
 				if err != nil {
-					log.Printf("Auto-config save failed: %v", err)
+					log.Printf("ISP speed test failed: %v — using config defaults", err)
+				} else {
+					dlMbps, ulMbps, err = autoConfigFromSpeedTest(result, cfg)
+					if err != nil {
+						log.Printf("Auto-config save failed: %v", err)
+					}
+					cfgNow = cfg.Get()
+					log.Printf("Auto-configured: %dMbps down, %dMbps up (%d/%d streams)",
+						dlMbps, ulMbps, cfgNow.DownloadConcurrency, cfgNow.UploadConcurrency)
 				}
-				cfgNow = cfg.Get()
-				log.Printf("Auto-configured: %dMbps down, %dMbps up (%d/%d streams)",
-					dlMbps, ulMbps, cfgNow.DownloadConcurrency, cfgNow.UploadConcurrency)
+			} else {
+				log.Printf("Using configured speeds: %dMbps down, %dMbps up",
+					cfgNow.DefaultDownloadMbps, cfgNow.DefaultUploadMbps)
 			}
 
 		case config.AutoModeMax:
@@ -400,44 +407,8 @@ func main() {
 		}
 	}()
 
-	// Periodic ISP speed re-test (Reliable mode only, every 6 hours)
-	go func() {
-		ticker := time.NewTicker(6 * time.Hour)
-		defer ticker.Stop()
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case <-ticker.C:
-				cfgNow := cfg.Get()
-				if cfgNow.AutoMode != config.AutoModeReliable || !running.Load() {
-					continue
-				}
-				log.Println("Periodic ISP speed re-test starting...")
-				stopEngines()
-				time.Sleep(2 * time.Second)
-
-				ispTestRunning.Store(true)
-				result, err := speedtest.RunISPTest(ctx, func(phase string, pct int) {
-					ispTestPhase.Store(phase)
-					ispTestProgress.Store(int32(pct))
-				})
-				ispTestRunning.Store(false)
-				ispTestPhase.Store("")
-				ispTestProgress.Store(0)
-
-				if err != nil {
-					log.Printf("Periodic speed test failed: %v — resuming with current settings", err)
-				} else {
-					if _, _, err := autoConfigFromSpeedTest(result, cfg); err != nil {
-						log.Printf("Periodic speed test save failed: %v", err)
-					}
-				}
-				cfgNow = cfg.Get()
-				startEngines(cfgNow.DefaultDownloadMbps, cfgNow.DefaultUploadMbps)
-			}
-		}
-	}()
+	// Note: periodic ISP re-testing removed. Speed test only runs once
+	// at startup if the user hasn't manually configured speeds.
 
 	// Start HTTP server
 	server := &http.Server{
