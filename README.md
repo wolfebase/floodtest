@@ -20,7 +20,7 @@
 
 ---
 
-FloodTest generates **real WAN traffic** that registers on your ISP's usage meter. It downloads from 22+ global speed test servers and uploads via HTTP/S3 simultaneously, logging throughput over time to detect exactly when your ISP starts throttling.
+FloodTest generates **real WAN traffic** that registers on your ISP's usage meter. It downloads from 90+ global speed test servers across 16 hosting providers and uploads via HTTP/S3 simultaneously, logging throughput over time to detect exactly when your ISP starts throttling.
 
 Built as a single Go binary with an embedded React dashboard, it runs in a 23MB Docker container and manages itself -- including automatic updates.
 
@@ -35,7 +35,7 @@ Built as a single Go binary with an embedded React dashboard, it runs in a 23MB 
 <br/>
 <strong>Bandwidth Saturation</strong>
 <br/>
-<sub>Parallel download from 22+ CDNs with upload to B2/HTTP targets. Auto-adjusts stream count to hit your target speed.</sub>
+<sub>Parallel download from 90+ servers with upload to B2/HTTP targets. Auto-adjusts stream count to hit your target speed.</sub>
 </td>
 <td align="center" width="25%">
 <img src="docs/assets/icon-throttle.svg" width="48" height="48" alt="Throttle Detection"/>
@@ -65,13 +65,14 @@ Built as a single Go binary with an embedded React dashboard, it runs in a 23MB 
 
 |  | Capability |
 |:---|:---|
-| **Real-time Dashboard** | Live throughput via WebSocket, updated every second |
+| **Control Surface** | Dynamic dashboard that morphs from mode selection into a live command center with throughput gauges, server pool health, and a real-time engine decision log |
+| **Traffic Flow** | Animated canvas visualization showing data flowing through providers with particle effects and per-provider speed breakdowns |
+| **Smart Auto-Modes** | *Reliable* (auto-tunes to 90% of ISP capacity via built-in speed test) or *Max* (64 download + 32 upload streams, no rate limits) |
+| **Server Health** | Provider-grouped accordion view with 90+ servers across 16 hosting providers. Exponential backoff, auto-block at 5 failures |
 | **Historical Charts** | 90 days of throughput history with throttle event overlay |
-| **Smart Auto-Modes** | *Reliable* (90% ISP capacity) or *Max* (full saturation) |
-| **Server Health** | Exponential backoff on failures, auto-block at 5 consecutive errors |
+| **Engine Event Log** | Live feed of engine decisions — stream scaling, server cooldowns, recoveries, speed test results — streamed via WebSocket |
 | **ISP Speed Test** | Built-in speed test to calibrate your actual line speed |
-| **Multi-direction** | Simultaneous download + upload testing |
-| **Rate Limiting** | Precise per-direction bandwidth targets |
+| **Multi-direction** | Simultaneous download + upload testing with per-direction rate limiting |
 
 <br/>
 
@@ -147,7 +148,7 @@ Or let FloodTest update itself from the **Updates** page in the UI.
 | **Backend** | Go -- goroutine pools for high-concurrency streaming |
 | **Frontend** | React 18 + TypeScript + Tailwind CSS + Recharts |
 | **Database** | SQLite with WAL mode (persisted in Docker volume) |
-| **Real-time** | WebSocket push every 1 second |
+| **Real-time** | WebSocket push every 1 second (stats + engine events) |
 | **Container** | 23MB distroless image (multi-arch: amd64 + arm64) |
 | **Delivery** | Single binary, frontend embedded via `go:embed` |
 
@@ -159,7 +160,7 @@ Or let FloodTest update itself from the **Updates** page in the UI.
 
 ### Download Engine
 
-Downloads large files (1-10 GB) from 22+ public speed test servers in parallel, discarding data to `/dev/null`. Automatically rotates between servers with exponential backoff (5 min to 30 min cap) when one fails or blocks. An auto-adjust goroutine monitors throughput every 10 seconds and spins up additional streams if below 80% of target (up to 64 concurrent).
+Downloads large files (1-10 GB) from 90+ public speed test servers across 16 hosting providers in parallel, discarding data to `/dev/null`. Automatically rotates between servers weighted by speed score and load, with exponential backoff (30s to 10 min cap) when one fails. Auto-blocks after 5 consecutive failures. An auto-adjust goroutine monitors throughput every 10 seconds and spins up additional streams if below 80% of target (up to 64 concurrent).
 
 ### Upload Engine
 
@@ -171,7 +172,7 @@ Monitors a rolling average of throughput. When it drops below a configurable thr
 
 ### Server Health
 
-Each download server is independently tracked with failure counters, success rates, and latency. Failed connections trigger exponential backoff. Servers are auto-blocked after 5 consecutive failures, with one-click unblock from the UI.
+Each download and upload server is independently tracked with failure counters, speed scores (rolling average of last 5 downloads), and active stream counts. Failed connections trigger exponential backoff (30s, 60s, 120s... capped at 10 min). Servers are auto-blocked after 5 consecutive failures, with one-click unblock from the UI. The dashboard groups servers by hosting provider in a collapsible accordion for easy scanning at scale.
 
 <br/>
 
@@ -179,7 +180,7 @@ Each download server is independently tracked with failure counters, success rat
 
 ## Screenshots
 
-> *Screenshots coming soon -- the UI features a dark-themed dashboard with real-time throughput gauges, historical charts, server health grid, and schedule manager.*
+> *Screenshots coming soon -- the UI features a dark-themed Control Surface that morphs between mode selection and a live command center, animated traffic flow visualization, provider-grouped server health accordion, historical charts, and schedule manager.*
 
 <br/>
 
@@ -260,7 +261,7 @@ Contributions are welcome. The codebase is straightforward:
 
 ```
 cmd/server/         Go entrypoint, frontend embedding
-internal/           Backend packages (api, config, db, download, upload, stats, throttle, scheduler, updater)
+internal/           Backend packages (api, config, db, download, upload, stats, events, throttle, scheduler, updater)
 frontend/src/       React SPA (TypeScript, Tailwind, Recharts)
 ```
 
