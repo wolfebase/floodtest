@@ -22,6 +22,8 @@ type WsMessage struct {
 	SessionUploadBytes   int64 `json:"sessionUploadBytes"`
 	HealthyServers       int   `json:"healthyServers"`
 	TotalServers         int   `json:"totalServers"`
+	HealthyUploadServers int   `json:"healthyUploadServers"`
+	TotalUploadServers   int   `json:"totalUploadServers"`
 	SpeedTestRunning     bool    `json:"speedTestRunning,omitempty"`
 	SpeedTestCompleted   int     `json:"speedTestCompleted,omitempty"`
 	SpeedTestTotal       int     `json:"speedTestTotal,omitempty"`
