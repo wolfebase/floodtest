@@ -29,7 +29,7 @@ type UploadServerHealth struct {
 	ActiveStreams       int32     `json:"activeStreams"`
 	SpeedBps            float64   `json:"speedBps"`
 	Status              string    `json:"status"`
-	Location            string    `json:"location,omitempty"`
+	Location            string    `json:"location"`
 }
 
 // uploadServer represents a single upload endpoint with health tracking.
