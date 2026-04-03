@@ -151,6 +151,7 @@ export default function ControlSurface({ stats }: ControlSurfaceProps) {
           <button
             onClick={handleToggle}
             disabled={toggling}
+            aria-label="Launch Engine"
             className="group relative w-full py-4 rounded-xl font-bold text-base transition-all duration-300 disabled:opacity-50 overflow-hidden"
           >
             <div className="absolute inset-0 bg-gradient-to-r from-amber-600 via-orange-500 to-red-500 transition-opacity duration-300" />
