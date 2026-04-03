@@ -35,6 +35,7 @@ type App struct {
 	GetSessionUploadBytes   func() int64
 	GetCurrentDownloadBps   func() int64
 	GetCurrentUploadBps     func() int64
+	GetPeakRates            func() (int64, int64)
 	TestB2Connection        func(keyID, appKey, bucket, endpoint string) (bool, string)
 	GetServerHealth         func() interface{}
 	GetUploadServerHealth   func() interface{}
@@ -293,6 +294,11 @@ func (a *App) HandleStatus(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	var peakDlBps, peakUlBps int64
+	if a.GetPeakRates != nil {
+		peakDlBps, peakUlBps = a.GetPeakRates()
+	}
+
 	writeJSON(w, map[string]interface{}{
 		"running":              running,
 		"downloadBps":          dlBps,
@@ -306,6 +312,8 @@ func (a *App) HandleStatus(w http.ResponseWriter, r *http.Request) {
 		"autoMode":             cfg.AutoMode,
 		"measuredDownloadMbps": cfg.MeasuredDownloadMbps,
 		"measuredUploadMbps":   cfg.MeasuredUploadMbps,
+		"peakDownloadBps":      peakDlBps,
+		"peakUploadBps":        peakUlBps,
 	})
 }
 
@@ -855,6 +863,82 @@ func (a *App) HandleUpdateHistory(w http.ResponseWriter, r *http.Request) {
 	} else {
 		writeJSON(w, []struct{}{})
 	}
+}
+
+func (a *App) HandleSpeedtestHistory(w http.ResponseWriter, r *http.Request) {
+	rows, err := a.DB.Query(
+		`SELECT id, timestamp, download_mbps, upload_mbps, streams
+		 FROM speedtest_history ORDER BY timestamp DESC LIMIT 100`)
+	if err != nil {
+		writeError(w, 500, err.Error())
+		return
+	}
+	defer rows.Close()
+
+	type entry struct {
+		ID           int     `json:"id"`
+		Timestamp    string  `json:"timestamp"`
+		DownloadMbps float64 `json:"downloadMbps"`
+		UploadMbps   float64 `json:"uploadMbps"`
+		Streams      int     `json:"streams"`
+	}
+	var results []entry
+	for rows.Next() {
+		var e entry
+		if err := rows.Scan(&e.ID, &e.Timestamp, &e.DownloadMbps, &e.UploadMbps, &e.Streams); err != nil {
+			writeError(w, 500, err.Error())
+			return
+		}
+		results = append(results, e)
+	}
+	if results == nil {
+		results = []entry{}
+	}
+	writeJSON(w, results)
+}
+
+func (a *App) HandleDailyUsage(w http.ResponseWriter, r *http.Request) {
+	daysStr := r.URL.Query().Get("days")
+	days := 30
+	if daysStr != "" {
+		if d, err := strconv.Atoi(daysStr); err == nil && d > 0 && d <= 90 {
+			days = d
+		}
+	}
+
+	cutoff := time.Now().UTC().AddDate(0, 0, -days).Format("2006-01-02")
+	rows, err := a.DB.Query(
+		`SELECT DATE(timestamp) as date,
+		        SUM(download_bytes) as download_bytes,
+		        SUM(upload_bytes) as upload_bytes
+		 FROM throughput_history
+		 WHERE DATE(timestamp) >= ?
+		 GROUP BY DATE(timestamp)
+		 ORDER BY date ASC`, cutoff)
+	if err != nil {
+		writeError(w, 500, err.Error())
+		return
+	}
+	defer rows.Close()
+
+	type dayEntry struct {
+		Date          string `json:"date"`
+		DownloadBytes int64  `json:"downloadBytes"`
+		UploadBytes   int64  `json:"uploadBytes"`
+	}
+	var results []dayEntry
+	for rows.Next() {
+		var e dayEntry
+		if err := rows.Scan(&e.Date, &e.DownloadBytes, &e.UploadBytes); err != nil {
+			writeError(w, 500, err.Error())
+			return
+		}
+		results = append(results, e)
+	}
+	if results == nil {
+		results = []dayEntry{}
+	}
+	writeJSON(w, results)
 }
 
 // LoggingMiddleware logs HTTP requests

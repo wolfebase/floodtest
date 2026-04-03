@@ -36,6 +36,9 @@ func NewRouter(app *App, frontend embed.FS) http.Handler {
 	mux.HandleFunc("POST /api/upload-unblock", app.HandleUnblockUploadServer)
 	mux.HandleFunc("POST /api/upload-unblock-all", app.HandleUnblockAllUploads)
 
+	mux.HandleFunc("GET /api/speedtest-history", app.HandleSpeedtestHistory)
+	mux.HandleFunc("GET /api/usage/daily", app.HandleDailyUsage)
+
 	mux.HandleFunc("GET /api/updates/status", app.HandleUpdateStatus)
 	mux.HandleFunc("POST /api/updates/check", app.HandleCheckUpdate)
 	mux.HandleFunc("POST /api/updates/apply", app.HandleApplyUpdate)

@@ -34,6 +34,8 @@ type WsMessage struct {
 	ISPTestRunning       bool    `json:"ispTestRunning,omitempty"`
 	ISPTestPhase         string  `json:"ispTestPhase,omitempty"`
 	ISPTestProgress      int              `json:"ispTestProgress,omitempty"`
+	PeakDownloadBps      int64            `json:"peakDownloadBps,omitempty"`
+	PeakUploadBps        int64            `json:"peakUploadBps,omitempty"`
 	Events               []events.Event   `json:"events,omitempty"`
 }
 

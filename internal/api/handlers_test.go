@@ -338,3 +338,115 @@ func TestHandleUnblockAllUploads(t *testing.T) {
 		t.Errorf("expected 200, got %d", w.Code)
 	}
 }
+
+func TestHandleSpeedtestHistory_Empty(t *testing.T) {
+	app := testApp(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/speedtest-history", nil)
+	rec := httptest.NewRecorder()
+
+	app.HandleSpeedtestHistory(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var body []interface{}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("expected JSON array: %v", err)
+	}
+	if len(body) != 0 {
+		t.Fatalf("expected empty array, got %d elements", len(body))
+	}
+}
+
+func TestHandleSpeedtestHistory_WithData(t *testing.T) {
+	app := testApp(t)
+
+	// Insert test data.
+	_, err := app.DB.Exec(
+		`INSERT INTO speedtest_history (timestamp, download_mbps, upload_mbps, streams)
+		 VALUES ('2026-04-01T12:00:00Z', 940.5, 450.2, 16)`)
+	if err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/speedtest-history", nil)
+	rec := httptest.NewRecorder()
+
+	app.HandleSpeedtestHistory(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var body []map[string]interface{}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+	if len(body) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(body))
+	}
+	if body[0]["downloadMbps"] != 940.5 {
+		t.Errorf("expected downloadMbps=940.5, got %v", body[0]["downloadMbps"])
+	}
+	if body[0]["uploadMbps"] != 450.2 {
+		t.Errorf("expected uploadMbps=450.2, got %v", body[0]["uploadMbps"])
+	}
+}
+
+func TestHandleDailyUsage_Empty(t *testing.T) {
+	app := testApp(t)
+	req := httptest.NewRequest(http.MethodGet, "/api/usage/daily", nil)
+	rec := httptest.NewRecorder()
+
+	app.HandleDailyUsage(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var body []interface{}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("expected JSON array: %v", err)
+	}
+	if len(body) != 0 {
+		t.Fatalf("expected empty array, got %d elements", len(body))
+	}
+}
+
+func TestHandleDailyUsage_WithData(t *testing.T) {
+	app := testApp(t)
+
+	// Insert throughput_history rows for today.
+	now := time.Now().UTC().Format(time.RFC3339)
+	_, err := app.DB.Exec(
+		`INSERT INTO throughput_history (timestamp, download_bytes, upload_bytes) VALUES (?, 1000000, 500000)`,
+		now,
+	)
+	if err != nil {
+		t.Fatalf("insert: %v", err)
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/api/usage/daily?days=7", nil)
+	rec := httptest.NewRecorder()
+
+	app.HandleDailyUsage(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", rec.Code)
+	}
+
+	var body []map[string]interface{}
+	if err := json.Unmarshal(rec.Body.Bytes(), &body); err != nil {
+		t.Fatalf("invalid JSON: %v", err)
+	}
+	if len(body) != 1 {
+		t.Fatalf("expected 1 entry, got %d", len(body))
+	}
+	if body[0]["downloadBytes"] != float64(1000000) {
+		t.Errorf("expected downloadBytes=1000000, got %v", body[0]["downloadBytes"])
+	}
+	if body[0]["uploadBytes"] != float64(500000) {
+		t.Errorf("expected uploadBytes=500000, got %v", body[0]["uploadBytes"])
+	}
+}

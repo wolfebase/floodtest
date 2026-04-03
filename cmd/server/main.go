@@ -206,8 +206,9 @@ func main() {
 		// Update throttle detector targets
 		detector.SetTargets(mbpsToBps(dlMbps), mbpsToBps(ulMbps))
 
-		// Reset session counter
+		// Reset session counters and peak tracking
 		collector.ResetSession()
+		collector.ResetPeaks()
 
 		// Start download engine
 		dlEngine.Start(ctx)
@@ -312,6 +313,7 @@ func main() {
 		GetSessionUploadBytes:   func() int64 { return collector.SessionUploadBytes() },
 		GetCurrentDownloadBps:   func() int64 { return collector.CurrentRate().DownloadBps },
 		GetCurrentUploadBps:     func() int64 { return collector.CurrentRate().UploadBps },
+		GetPeakRates:            collector.PeakRates,
 		GetServerHealth:         func() interface{} { return serverList.HealthStatus() },
 		UnblockServer:           func(url string) bool { return serverList.UnblockServer(url) },
 		UnblockAll:              func() int { return serverList.UnblockAll() },
@@ -403,6 +405,7 @@ func main() {
 					dlBps = rate.DownloadBps
 					ulBps = rate.UploadBps
 				}
+				peakDl, peakUl := collector.PeakRates()
 				pendingEvents := eventBuf.Drain()
 				hub.Broadcast(api.WsMessage{
 					DownloadBps:          dlBps,
@@ -426,6 +429,8 @@ func main() {
 					ISPTestRunning:       ispTestRunning.Load(),
 					ISPTestPhase:         ispTestPhase.Load().(string),
 					ISPTestProgress:      int(ispTestProgress.Load()),
+					PeakDownloadBps:      peakDl,
+					PeakUploadBps:        peakUl,
 					Events:               pendingEvents,
 				})
 			}
