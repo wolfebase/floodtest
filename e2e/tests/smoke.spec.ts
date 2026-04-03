@@ -9,11 +9,11 @@ test.describe('Dashboard', () => {
     await expect(page.getByRole('button', { name: /reliable/i })).toBeVisible()
   })
 
-  test('shows launch or stop button', async ({ page }) => {
+  test('shows mode selector buttons', async ({ page }) => {
     await page.goto('/')
-    // The Launch Engine button uses overlay divs that prevent role-based matching,
-    // so we find it by text content instead
-    await expect(page.getByText(/launch engine/i).or(page.getByText(/stop/i).first())).toBeVisible({ timeout: 15000 })
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByRole('button', { name: /reliable/i })).toBeVisible({ timeout: 15000 })
+    await expect(page.getByRole('button', { name: /max/i })).toBeVisible()
   })
 })
 
