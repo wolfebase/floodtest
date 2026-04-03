@@ -22,6 +22,10 @@ export interface WsStats {
   ispTestPhase: string
   ispTestProgress: number
   events: EngineEvent[]
+  peakDownloadBps?: number
+  peakUploadBps?: number
+  nextScheduledEvent?: string
+  nextScheduledTime?: string
 }
 
 const EMPTY: WsStats = {

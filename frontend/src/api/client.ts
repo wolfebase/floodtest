@@ -133,6 +133,20 @@ export interface EngineEvent {
   message: string
 }
 
+export interface SpeedTestHistoryEntry {
+  id: number
+  timestamp: string
+  downloadMbps: number
+  uploadMbps: number
+  streams: number
+}
+
+export interface DailyUsageEntry {
+  date: string
+  downloadBytes: number
+  uploadBytes: number
+}
+
 export interface UpdateStatus {
   currentVersion: string
   currentBuildDate: string
@@ -221,4 +235,8 @@ export const api = {
     body: JSON.stringify({ url }),
   }),
   unblockAllUploads: () => request<{ status: string; count: number }>('/api/upload-unblock-all', { method: 'POST' }),
+
+  // Speedtest history & daily usage
+  getSpeedtestHistory: () => request<SpeedTestHistoryEntry[]>('/api/speedtest-history'),
+  getDailyUsage: (days: number = 30) => request<DailyUsageEntry[]>(`/api/usage/daily?days=${days}`),
 }
