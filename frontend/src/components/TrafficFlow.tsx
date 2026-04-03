@@ -108,7 +108,7 @@ export default function TrafficFlow({ stats }: Props) {
   }, [stats])
 
   return (
-    <div ref={containerRef} className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+    <div ref={containerRef} className="bg-forge-surface rounded-lg border border-forge-border overflow-hidden">
       <canvas ref={canvasRef} className="w-full block" />
     </div>
   )
