@@ -118,15 +118,15 @@ function hexToRgba(hex: string, alpha: number): string {
 // ---------------------------------------------------------------------------
 
 const COLORS = {
-  downloadAccent: '#22d3ee',
-  uploadAccent: '#a78bfa',
-  nodeBg: '#1e293b',
-  nodeBorder: '#374151',
-  textPrimary: '#ffffff',
-  textSecondary: '#9ca3af',
-  textDim: '#6b7280',
-  healthy: '#34d399',
-  warning: '#fbbf24',
+  downloadAccent: '#f59e0b',
+  uploadAccent: '#94a3b8',
+  nodeBg: '#18181b',
+  nodeBorder: '#27272a',
+  textPrimary: '#fafafa',
+  textSecondary: '#a1a1aa',
+  textDim: '#71717a',
+  healthy: '#22c55e',
+  warning: '#f59e0b',
 }
 
 // ---------------------------------------------------------------------------
@@ -504,7 +504,7 @@ export class TrafficFlowRenderer {
     for (const pipe of allPipes) {
       const [p0, p1, p2, p3] = this.pipeControlPoints(pipe)
       const fraction = pipe.throughputFraction
-      const lineW = Math.max(2, Math.min(16, fraction * 16))
+      const lineW = Math.max(1, Math.min(6, fraction * 6))
       const alpha = running ? 0.4 : 0.15
 
       // Draw pipe stroke
@@ -606,12 +606,12 @@ export class TrafficFlowRenderer {
     ctx.fillStyle = COLORS.nodeBg
     ctx.fill()
 
-    // Gradient border (cyan left, violet right)
+    // Gradient border (amber left, orange right)
     ctx.save()
     roundedRect(ctx, n.x, n.y, n.w, n.h, 12)
     const grad = ctx.createLinearGradient(n.x, n.y, n.x + n.w, n.y)
-    grad.addColorStop(0, hexToRgba(COLORS.downloadAccent, 0.7))
-    grad.addColorStop(1, hexToRgba(COLORS.uploadAccent, 0.7))
+    grad.addColorStop(0, '#f59e0b')
+    grad.addColorStop(1, '#ea580c')
     ctx.strokeStyle = grad
     ctx.lineWidth = 2
     ctx.stroke()
@@ -674,7 +674,7 @@ export class TrafficFlowRenderer {
   private drawSectionLabels(ctx: CanvasRenderingContext2D): void {
     if (this.isMobile) return
 
-    ctx.fillStyle = COLORS.textDim
+    ctx.fillStyle = '#52525b'
     ctx.font = 'bold 10px system-ui, -apple-system, sans-serif'
     ctx.textAlign = 'center'
     ctx.textBaseline = 'middle'

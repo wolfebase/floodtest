@@ -17,34 +17,38 @@ export default function ThroughputColumn({ stats, mode }: ThroughputColumnProps)
 
   return (
     <div className="space-y-3">
-      <h3 className="text-xs font-medium text-gray-500 uppercase tracking-wide">Throughput</h3>
+      <h3 className="text-xs font-medium text-zinc-500 uppercase tracking-wide">Throughput</h3>
 
       <div className="space-y-1">
         <div className="flex items-baseline gap-2">
-          <span className="text-gray-500 text-xs">↓</span>
-          <span className="text-xl font-bold text-white tabular-nums">
+          <span className="text-zinc-500 text-xs">↓</span>
+          <span className="text-xl font-bold text-orange-400 font-mono tabular-nums">
             {formatSpeed(stats.downloadBps)}
           </span>
+          {(stats.peakDownloadBps ?? 0) > 0 && (
+            <span className="text-xs text-zinc-500 font-mono ml-1">peak {formatSpeed(stats.peakDownloadBps!)}</span>
+          )}
         </div>
         <div className="flex items-baseline gap-2">
-          <span className="text-gray-500 text-xs">↑</span>
-          <span className="text-xl font-bold text-white tabular-nums">
+          <span className="text-zinc-500 text-xs">↑</span>
+          <span className="text-xl font-bold text-slate-400 font-mono tabular-nums">
             {formatSpeed(stats.uploadBps)}
           </span>
+          {(stats.peakUploadBps ?? 0) > 0 && (
+            <span className="text-xs text-zinc-500 font-mono ml-1">peak {formatSpeed(stats.peakUploadBps!)}</span>
+          )}
         </div>
       </div>
 
       {mode === 'reliable' && targetBps > 0 && (
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs">
-            <span className="text-gray-500">Target: {formatSpeed(targetBps)}</span>
-            <span className="text-gray-400 font-medium">{efficiency}%</span>
+            <span className="text-zinc-500 font-mono">Target: {formatSpeed(targetBps)}</span>
+            <span className="text-zinc-400 font-medium font-mono">{efficiency}%</span>
           </div>
-          <div className="h-1.5 bg-gray-800 rounded-full overflow-hidden">
+          <div className="h-1.5 bg-forge-raised rounded-full overflow-hidden">
             <div
-              className={`h-full rounded-full transition-all duration-500 ${
-                efficiency >= 80 ? 'bg-green-500' : efficiency >= 50 ? 'bg-yellow-500' : 'bg-red-500'
-              }`}
+              className="h-full rounded-full transition-all duration-500 bg-amber-500"
               style={{ width: `${Math.min(100, efficiency)}%` }}
             />
           </div>
@@ -57,7 +61,7 @@ export default function ThroughputColumn({ stats, mode }: ThroughputColumnProps)
         </span>
       )}
 
-      <div className="text-sm text-gray-400">
+      <div className="text-xs text-zinc-500 font-mono">
         {stats.downloadStreams} ↓ · {stats.uploadStreams} ↑ streams
       </div>
     </div>

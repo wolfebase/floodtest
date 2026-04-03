@@ -11,7 +11,7 @@ export default function ModeToggle({ mode, onChange, compact }: ModeToggleProps)
   ]
 
   return (
-    <div className={`inline-flex rounded-lg bg-gray-800 p-0.5 ${compact ? 'text-xs' : 'text-sm'}`}>
+    <div className={`inline-flex rounded-lg bg-forge-raised p-0.5 ${compact ? 'text-xs' : 'text-sm'}`}>
       {modes.map(m => (
         <button
           key={m.key}
@@ -20,8 +20,8 @@ export default function ModeToggle({ mode, onChange, compact }: ModeToggleProps)
             compact ? 'px-3 py-1' : 'px-5 py-2'
           } ${
             mode === m.key
-              ? 'bg-blue-600 text-white shadow-sm'
-              : 'text-gray-400 hover:text-white'
+              ? 'bg-amber-500 text-zinc-950 shadow-sm'
+              : 'text-zinc-400 hover:text-zinc-200'
           }`}
         >
           {m.label}
