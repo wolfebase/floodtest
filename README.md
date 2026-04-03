@@ -8,11 +8,11 @@
 
 <br/>
 
-[![Docker Image](https://img.shields.io/badge/ghcr.io-wolfebase%2Ffloodtest-0891b2?style=flat-square&logo=docker&logoColor=white)](https://github.com/wolfebase/floodtest/pkgs/container/floodtest)
-[![Image Size](https://img.shields.io/badge/image-~23MB-164e63?style=flat-square&logo=docker&logoColor=22d3ee)](https://github.com/wolfebase/floodtest/pkgs/container/floodtest)
-[![Go](https://img.shields.io/badge/Go-1.25-00add8?style=flat-square&logo=go&logoColor=white)](https://go.dev)
+[![Docker Image](https://img.shields.io/badge/ghcr.io-wolfebase%2Ffloodtest-f59e0b?style=flat-square&logo=docker&logoColor=white)](https://github.com/wolfebase/floodtest/pkgs/container/floodtest)
+[![Image Size](https://img.shields.io/badge/image-~23MB-92400e?style=flat-square&logo=docker&logoColor=fbbf24)](https://github.com/wolfebase/floodtest/pkgs/container/floodtest)
+[![Go](https://img.shields.io/badge/Go-1.25-d97706?style=flat-square&logo=go&logoColor=white)](https://go.dev)
 [![License: MIT](https://img.shields.io/badge/license-MIT-34d399?style=flat-square)](LICENSE)
-[![Platform](https://img.shields.io/badge/arch-amd64%20%7C%20arm64-a78bfa?style=flat-square)](https://github.com/wolfebase/floodtest/pkgs/container/floodtest)
+[![Platform](https://img.shields.io/badge/arch-amd64%20%7C%20arm64-b45309?style=flat-square)](https://github.com/wolfebase/floodtest/pkgs/container/floodtest)
 
 <br/>
 
@@ -286,6 +286,6 @@ go build -o wansaturator ./cmd/server
 
 <br/>
 
-[![GitHub](https://img.shields.io/badge/GitHub-wolfebase%2Ffloodtest-1e293b?style=flat-square&logo=github&logoColor=white)](https://github.com/wolfebase/floodtest)
+[![GitHub](https://img.shields.io/badge/GitHub-wolfebase%2Ffloodtest-78350f?style=flat-square&logo=github&logoColor=fbbf24)](https://github.com/wolfebase/floodtest)
 
 </div>

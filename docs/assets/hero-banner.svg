@@ -4,10 +4,10 @@
       <stop offset="0%" style="stop-color:#0f172a"/>
       <stop offset="100%" style="stop-color:#1e293b"/>
     </linearGradient>
-    <linearGradient id="cyanGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-      <stop offset="0%" style="stop-color:#22d3ee;stop-opacity:0"/>
-      <stop offset="50%" style="stop-color:#22d3ee;stop-opacity:1"/>
-      <stop offset="100%" style="stop-color:#22d3ee;stop-opacity:0"/>
+    <linearGradient id="amberGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#f59e0b;stop-opacity:0"/>
+      <stop offset="50%" style="stop-color:#f59e0b;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#f59e0b;stop-opacity:0"/>
     </linearGradient>
     <linearGradient id="violetGrad" x1="0%" y1="0%" x2="100%" y2="0%">
       <stop offset="0%" style="stop-color:#a78bfa;stop-opacity:0"/>
@@ -20,8 +20,8 @@
       <stop offset="100%" style="stop-color:#34d399;stop-opacity:0"/>
     </linearGradient>
     <linearGradient id="titleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" style="stop-color:#22d3ee"/>
-      <stop offset="100%" style="stop-color:#a78bfa"/>
+      <stop offset="0%" style="stop-color:#f59e0b"/>
+      <stop offset="100%" style="stop-color:#fbbf24"/>
     </linearGradient>
     <filter id="glow">
       <feGaussianBlur stdDeviation="3" result="blur"/>
@@ -126,15 +126,15 @@
 
   <!-- Throughput wave background (static sine waves) -->
   <g opacity="0.08">
-    <path d="M0,140 Q75,100 150,140 Q225,180 300,140 Q375,100 450,140 Q525,180 600,140 Q675,100 750,140 Q825,180 900,140" fill="none" stroke="#22d3ee" stroke-width="1"/>
+    <path d="M0,140 Q75,100 150,140 Q225,180 300,140 Q375,100 450,140 Q525,180 600,140 Q675,100 750,140 Q825,180 900,140" fill="none" stroke="#f59e0b" stroke-width="1"/>
     <path d="M0,150 Q75,120 150,150 Q225,180 300,150 Q375,120 450,150 Q525,180 600,150 Q675,120 750,150 Q825,180 900,150" fill="none" stroke="#a78bfa" stroke-width="1"/>
   </g>
 
-  <!-- Flowing data stream lines - Download (cyan, left to right) -->
+  <!-- Flowing data stream lines - Download (amber, left to right) -->
   <g filter="url(#glow)">
-    <rect class="stream-cyan" x="0" y="85" width="120" height="2" rx="1" fill="url(#cyanGrad)"/>
-    <rect class="stream-cyan-2" x="0" y="95" width="80" height="1.5" rx="1" fill="url(#cyanGrad)" opacity="0.7"/>
-    <rect class="stream-cyan-3" x="0" y="90" width="100" height="1" rx="1" fill="url(#cyanGrad)" opacity="0.5"/>
+    <rect class="stream-cyan" x="0" y="85" width="120" height="2" rx="1" fill="url(#amberGrad)"/>
+    <rect class="stream-cyan-2" x="0" y="95" width="80" height="1.5" rx="1" fill="url(#amberGrad)" opacity="0.7"/>
+    <rect class="stream-cyan-3" x="0" y="90" width="100" height="1" rx="1" fill="url(#amberGrad)" opacity="0.5"/>
   </g>
 
   <!-- Flowing data stream lines - Upload (violet, right to left) -->
@@ -151,7 +151,7 @@
 
   <!-- Pulsing nodes -->
   <g filter="url(#glow)">
-    <circle class="pulse-dot" cx="80" cy="90" r="3" fill="#22d3ee"/>
+    <circle class="pulse-dot" cx="80" cy="90" r="3" fill="#f59e0b"/>
     <circle class="pulse-dot-2" cx="820" cy="190" r="3" fill="#a78bfa"/>
     <circle class="pulse-dot-3" cx="450" cy="218" r="2" fill="#34d399"/>
   </g>
@@ -159,14 +159,14 @@
   <!-- Side decorative elements -->
   <g opacity="0.15">
     <!-- Left bracket -->
-    <path d="M30,100 L20,100 L20,180 L30,180" fill="none" stroke="#22d3ee" stroke-width="1.5"/>
+    <path d="M30,100 L20,100 L20,180 L30,180" fill="none" stroke="#f59e0b" stroke-width="1.5"/>
     <!-- Right bracket -->
     <path d="M870,100 L880,100 L880,180 L870,180" fill="none" stroke="#a78bfa" stroke-width="1.5"/>
   </g>
 
   <!-- Speed indicators on left -->
   <g opacity="0.3" transform="translate(45, 105)">
-    <text font-family="monospace" font-size="8" fill="#22d3ee">DL 4.8 Gbps</text>
+    <text font-family="monospace" font-size="8" fill="#f59e0b">DL 4.8 Gbps</text>
   </g>
   <g opacity="0.3" transform="translate(45, 180)">
     <text font-family="monospace" font-size="8" fill="#a78bfa">UL 2.1 Gbps</text>
@@ -174,7 +174,7 @@
 
   <!-- Speed indicators on right -->
   <g opacity="0.25" transform="translate(790, 105)">
-    <text font-family="monospace" font-size="8" fill="#22d3ee" text-anchor="start">22 servers</text>
+    <text font-family="monospace" font-size="8" fill="#f59e0b" text-anchor="start">22 servers</text>
   </g>
   <g opacity="0.25" transform="translate(790, 180)">
     <text font-family="monospace" font-size="8" fill="#a78bfa" text-anchor="start">B2 / HTTP</text>
@@ -195,7 +195,7 @@
   <rect x="300" y="255" width="300" height="1" rx="0.5" fill="url(#titleGrad)" opacity="0.3"/>
 
   <!-- Corner accents -->
-  <path d="M12,20 L12,12 L20,12" fill="none" stroke="#22d3ee" stroke-width="1" opacity="0.3"/>
+  <path d="M12,20 L12,12 L20,12" fill="none" stroke="#f59e0b" stroke-width="1" opacity="0.3"/>
   <path d="M888,20 L888,12 L880,12" fill="none" stroke="#a78bfa" stroke-width="1" opacity="0.3"/>
   <path d="M12,260 L12,268 L20,268" fill="none" stroke="#34d399" stroke-width="1" opacity="0.3"/>
   <path d="M888,260 L888,268 L880,268" fill="none" stroke="#a78bfa" stroke-width="1" opacity="0.3"/>

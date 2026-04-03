@@ -55,14 +55,14 @@
 
   <!-- Clock face -->
   <circle cx="32" cy="32" r="20" fill="none" stroke="#334155" stroke-width="1.5"/>
-  <circle cx="32" cy="32" r="20" fill="none" stroke="#22d3ee" stroke-width="1.5" opacity="0.3"/>
+  <circle cx="32" cy="32" r="20" fill="none" stroke="#f59e0b" stroke-width="1.5" opacity="0.3"/>
 
   <!-- Hour marks -->
   <g>
-    <line class="tick-pulse" x1="32" y1="14" x2="32" y2="17" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round"/>
-    <line class="tick-pulse-2" x1="50" y1="32" x2="47" y2="32" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round"/>
-    <line class="tick-pulse-3" x1="32" y1="50" x2="32" y2="47" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round"/>
-    <line class="tick-pulse-4" x1="14" y1="32" x2="17" y2="32" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round"/>
+    <line class="tick-pulse" x1="32" y1="14" x2="32" y2="17" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/>
+    <line class="tick-pulse-2" x1="50" y1="32" x2="47" y2="32" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/>
+    <line class="tick-pulse-3" x1="32" y1="50" x2="32" y2="47" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/>
+    <line class="tick-pulse-4" x1="14" y1="32" x2="17" y2="32" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/>
   </g>
 
   <!-- Minor marks -->
@@ -84,9 +84,9 @@
 
   <!-- Minute hand -->
   <g class="minute" filter="url(#schedGlow)">
-    <line x1="32" y1="32" x2="32" y2="17" stroke="#22d3ee" stroke-width="1.5" stroke-linecap="round"/>
+    <line x1="32" y1="32" x2="32" y2="17" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round"/>
   </g>
 
   <!-- Center dot -->
-  <circle cx="32" cy="32" r="2" fill="#22d3ee"/>
+  <circle cx="32" cy="32" r="2" fill="#f59e0b"/>
 </svg>
