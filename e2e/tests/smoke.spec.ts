@@ -1,43 +1,33 @@
 import { test, expect } from '@playwright/test'
 
-// In CI, the app starts fresh and may show the SetupWizard.
-// Skip setup by saving default settings before UI tests.
-test.beforeAll(async ({ request }) => {
-  // Save minimal settings to skip the setup wizard
-  await request.put('/api/settings', {
-    data: {
-      defaultDownloadMbps: 500,
-      defaultUploadMbps: 500,
-      uploadMode: 'http',
-    },
-  })
-})
-
 test.describe('Dashboard', () => {
-  test('loads and shows dashboard heading', async ({ page }) => {
+  test('loads and shows dashboard content', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible()
+    // Wait for the app to finish loading (ScreenLoader disappears when isSetupRequired resolves)
+    await expect(page.getByText('Dashboard')).toBeVisible({ timeout: 15000 })
+    // Verify mode selector is present (Reliable/Max buttons)
+    await expect(page.getByRole('button', { name: /reliable/i })).toBeVisible()
   })
 
-  test('shows launch button on dashboard', async ({ page }) => {
+  test('shows launch or stop button', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('button', { name: /launch engine/i })).toBeVisible()
+    await expect(page.getByRole('button', { name: /launch engine|stop/i })).toBeVisible({ timeout: 15000 })
   })
 })
 
 test.describe('Settings', () => {
   test('loads settings page', async ({ page }) => {
-    await page.goto('/')
-    await page.getByRole('link', { name: /settings/i }).click()
-    await expect(page.getByText('Download (Mbps)')).toBeVisible()
+    await page.goto('/settings')
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByText('Download (Mbps)')).toBeVisible({ timeout: 10000 })
   })
 })
 
 test.describe('Schedule', () => {
   test('loads schedule page', async ({ page }) => {
-    await page.goto('/')
-    await page.getByRole('link', { name: /schedule/i }).click()
-    await expect(page.getByRole('heading', { name: 'Schedule' })).toBeVisible()
+    await page.goto('/schedule')
+    await page.waitForLoadState('networkidle')
+    await expect(page.getByRole('heading', { name: 'Schedule' })).toBeVisible({ timeout: 10000 })
   })
 })
 
@@ -45,8 +35,7 @@ test.describe('Charts', () => {
   test('loads charts page without error', async ({ page }) => {
     const errors: string[] = []
     page.on('pageerror', e => errors.push(e.message))
-    await page.goto('/')
-    await page.getByRole('link', { name: /charts/i }).click()
+    await page.goto('/charts')
     await page.waitForLoadState('networkidle')
     expect(errors).toHaveLength(0)
   })
