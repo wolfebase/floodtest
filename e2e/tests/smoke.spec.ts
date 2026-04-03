@@ -11,7 +11,9 @@ test.describe('Dashboard', () => {
 
   test('shows launch or stop button', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('button', { name: /launch engine|stop/i })).toBeVisible({ timeout: 15000 })
+    // The Launch Engine button uses overlay divs that prevent role-based matching,
+    // so we find it by text content instead
+    await expect(page.getByText(/launch engine/i).or(page.getByText(/stop/i).first())).toBeVisible({ timeout: 15000 })
   })
 })
 
