@@ -3,6 +3,7 @@ package speedtest
 import (
 	"context"
 	"crypto/rand"
+	"database/sql"
 	"fmt"
 	"io"
 	"log"
@@ -258,6 +259,15 @@ func trimmedMeanMbps(samples []float64) float64 {
 
 	// Convert: bytes per 200ms → bits per second → megabits per second
 	return avgBytesPerInterval * 8 / 0.2 / 1_000_000
+}
+
+// SaveResult persists an ISP speed test result to the speedtest_history table.
+func SaveResult(db *sql.DB, r Result) error {
+	_, err := db.Exec(
+		`INSERT INTO speedtest_history (timestamp, download_mbps, upload_mbps, streams) VALUES (?, ?, ?, ?)`,
+		r.Timestamp.UTC().Format(time.RFC3339), r.DownloadMbps, r.UploadMbps, r.Streams,
+	)
+	return err
 }
 
 // countingReader reads from a pre-filled byte slice while tracking total bytes read via an atomic counter.

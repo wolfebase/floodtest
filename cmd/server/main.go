@@ -164,6 +164,9 @@ func main() {
 				} else {
 					eventBuf.Add("test", fmt.Sprintf("Download: %.0f Mbps", result.DownloadMbps))
 					eventBuf.Add("test", fmt.Sprintf("Upload: %.0f Mbps", result.UploadMbps))
+					if saveErr := speedtest.SaveResult(database, *result); saveErr != nil {
+						log.Printf("Failed to save ISP speed test result: %v", saveErr)
+					}
 					dlMbps, ulMbps, err = autoConfigFromSpeedTest(result, cfg)
 					if err != nil {
 						log.Printf("Auto-config save failed: %v", err)
@@ -371,6 +374,9 @@ func main() {
 		}
 		eventBuf.Add("test", fmt.Sprintf("Download: %.0f Mbps", result.DownloadMbps))
 		eventBuf.Add("test", fmt.Sprintf("Upload: %.0f Mbps", result.UploadMbps))
+		if saveErr := speedtest.SaveResult(database, *result); saveErr != nil {
+			log.Printf("Failed to save ISP speed test result: %v", saveErr)
+		}
 		if _, _, err := autoConfigFromSpeedTest(result, cfg); err != nil {
 			return nil, err
 		}
