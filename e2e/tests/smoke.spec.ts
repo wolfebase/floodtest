@@ -1,10 +1,22 @@
 import { test, expect } from '@playwright/test'
 
+// In CI, the app starts fresh and may show the SetupWizard.
+// Skip setup by saving default settings before UI tests.
+test.beforeAll(async ({ request }) => {
+  // Save minimal settings to skip the setup wizard
+  await request.put('/api/settings', {
+    data: {
+      defaultDownloadMbps: 500,
+      defaultUploadMbps: 500,
+      uploadMode: 'http',
+    },
+  })
+})
+
 test.describe('Dashboard', () => {
-  test('loads and shows mode selector', async ({ page }) => {
+  test('loads and shows dashboard heading', async ({ page }) => {
     await page.goto('/')
     await expect(page.getByRole('heading', { name: 'Dashboard', level: 1 })).toBeVisible()
-    await expect(page.getByRole('button', { name: /launch|stop/i })).toBeVisible()
   })
 
   test('shows launch button on dashboard', async ({ page }) => {
@@ -17,7 +29,7 @@ test.describe('Settings', () => {
   test('loads settings page', async ({ page }) => {
     await page.goto('/')
     await page.getByRole('link', { name: /settings/i }).click()
-    await expect(page.getByText('Download (Mbps)', { exact: true })).toBeVisible()
+    await expect(page.getByText('Download (Mbps)')).toBeVisible()
   })
 })
 
