@@ -99,7 +99,7 @@ export default function Settings() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-20">
-        <span className="text-gray-400">Loading settings...</span>
+        <span className="text-zinc-400">Loading settings...</span>
       </div>
     )
   }
@@ -113,17 +113,17 @@ export default function Settings() {
   }
 
   const inputClass =
-    'w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-  const labelClass = 'block text-sm font-medium text-gray-300 mb-1'
-  const sectionClass = 'bg-gray-900 rounded-xl border border-gray-800 p-6'
+    'w-full px-3 py-2 bg-forge-raised border border-forge-border-strong rounded-lg text-zinc-50 text-sm placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent'
+  const labelClass = 'block text-sm font-medium text-zinc-300 mb-1'
+  const sectionClass = 'bg-forge-surface rounded-lg border border-forge-border p-4'
 
   return (
     <div className="space-y-6">
-      <h2 className="text-2xl font-bold text-white">Settings</h2>
+      <h2 className="text-2xl font-bold text-zinc-50">Settings</h2>
 
       {/* Upload Configuration */}
       <div className={sectionClass}>
-        <h3 className="text-lg font-semibold text-white mb-4">
+        <h3 className="text-lg font-semibold text-zinc-50 mb-4">
           Upload Configuration
         </h3>
 
@@ -133,13 +133,13 @@ export default function Settings() {
           <select
             value={settings.uploadMode}
             onChange={(e) => update({ uploadMode: e.target.value })}
-            className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            className="w-full px-3 py-2 bg-forge-raised border border-forge-border-strong rounded-lg text-zinc-50 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
           >
             <option value="http">HTTP Discard (Free — no account needed)</option>
             <option value="s3">S3-Compatible (Backblaze B2 / Cloudflare R2)</option>
             <option value="local">Local Discard (testing only)</option>
           </select>
-          <p className="text-xs text-gray-500 mt-1">
+          <p className="text-xs text-zinc-500 mt-1">
             {settings.uploadMode === 'http' && 'Uploads random data to HTTP discard endpoints. No account required — measures real WAN upload throughput.'}
             {settings.uploadMode === 's3' && 'Uploads to an S3-compatible bucket (e.g. Backblaze B2, Cloudflare R2). Requires credentials below.'}
             {settings.uploadMode === 'local' && 'Uploads to this app\'s built-in discard endpoint. Does not measure real WAN bandwidth.'}
@@ -179,7 +179,7 @@ export default function Settings() {
               </div>
               <div className="md:col-span-2">
                 <label className={labelClass}>S3 Endpoint</label>
-                <p className="text-xs text-gray-500 mb-2">Must match your B2 account. Check your B2 dashboard → Buckets → Endpoint column.</p>
+                <p className="text-xs text-zinc-500 mb-2">Must match your B2 account. Check your B2 dashboard → Buckets → Endpoint column.</p>
                 {(() => {
                   const knownEndpoints = [
                     'https://s3.us-west-000.backblazeb2.com',
@@ -200,7 +200,7 @@ export default function Settings() {
                             update({ b2Endpoint: '' })
                           }
                         }}
-                        className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        className="w-full px-3 py-2 bg-forge-raised border border-forge-border-strong rounded-lg text-zinc-50 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                       >
                         <option value="https://s3.us-west-000.backblazeb2.com">us-west-000 — s3.us-west-000.backblazeb2.com</option>
                         <option value="https://s3.us-west-001.backblazeb2.com">us-west-001 — s3.us-west-001.backblazeb2.com</option>
@@ -227,12 +227,12 @@ export default function Settings() {
               <button
                 onClick={handleTestConnection}
                 disabled={testStatus === 'testing'}
-                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
+                className="px-4 py-2 border border-amber-500/50 text-amber-400 hover:bg-amber-500/10 bg-transparent text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
               >
                 {testStatus === 'testing' ? 'Testing...' : 'Test Connection'}
               </button>
               {testStatus === 'success' && (
-                <span className="text-sm text-green-400">{testMessage}</span>
+                <span className="text-sm text-emerald-400">{testMessage}</span>
               )}
               {testStatus === 'error' && (
                 <span className="text-sm text-red-400">{testMessage}</span>
@@ -247,14 +247,14 @@ export default function Settings() {
             <label className={labelClass}>Upload Endpoints</label>
             <div className="space-y-2 mb-4">
               {settings.uploadEndpoints.length === 0 && (
-                <p className="text-sm text-gray-500">No upload endpoints configured</p>
+                <p className="text-sm text-zinc-500">No upload endpoints configured</p>
               )}
               {settings.uploadEndpoints.map((url, index) => (
                 <div
                   key={index}
-                  className="flex items-center gap-2 bg-gray-800 rounded-lg px-3 py-2"
+                  className="flex items-center gap-2 bg-forge-raised rounded-lg px-3 py-2"
                 >
-                  <span className="flex-1 text-sm text-white font-mono truncate">
+                  <span className="flex-1 text-sm text-zinc-50 font-mono truncate">
                     {url}
                   </span>
                   <button
@@ -280,7 +280,7 @@ export default function Settings() {
               <button
                 onClick={addUploadEndpoint}
                 disabled={!newUploadEndpoint.trim()}
-                className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 shrink-0"
+                className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-zinc-950 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 shrink-0"
               >
                 Add
               </button>
@@ -290,8 +290,8 @@ export default function Settings() {
 
         {/* Local mode: info box */}
         {settings.uploadMode === 'local' && (
-          <div className="mb-4 bg-gray-800 border border-gray-700 rounded-lg p-4">
-            <p className="text-sm text-gray-300">
+          <div className="mb-4 bg-forge-raised border border-forge-border-strong rounded-lg p-4">
+            <p className="text-sm text-zinc-300">
               Uploads to this app's built-in discard endpoint. Does not test real WAN upload bandwidth — only useful for testing the upload engine itself.
             </p>
           </div>
@@ -314,7 +314,7 @@ export default function Settings() {
 
       {/* Speed Targets */}
       <div className={sectionClass}>
-        <h3 className="text-lg font-semibold text-white mb-4">Speed Targets</h3>
+        <h3 className="text-lg font-semibold text-zinc-50 mb-4">Speed Targets</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>Download (Mbps)</label>
@@ -325,7 +325,7 @@ export default function Settings() {
                 update({ defaultDownloadMbps: Number(e.target.value) })
               }
               min={1}
-              className={inputClass}
+              className={`${inputClass} font-mono`}
             />
           </div>
           <div>
@@ -337,7 +337,7 @@ export default function Settings() {
                 update({ defaultUploadMbps: Number(e.target.value) })
               }
               min={1}
-              className={inputClass}
+              className={`${inputClass} font-mono`}
             />
           </div>
         </div>
@@ -345,7 +345,7 @@ export default function Settings() {
 
       {/* Concurrency */}
       <div className={sectionClass}>
-        <h3 className="text-lg font-semibold text-white mb-4">Concurrency</h3>
+        <h3 className="text-lg font-semibold text-zinc-50 mb-4">Concurrency</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label className={labelClass}>Download Streams</label>
@@ -376,19 +376,19 @@ export default function Settings() {
 
       {/* Download Servers */}
       <div className={sectionClass}>
-        <h3 className="text-lg font-semibold text-white mb-4">
+        <h3 className="text-lg font-semibold text-zinc-50 mb-4">
           Download Servers
         </h3>
         <div className="space-y-2 mb-4">
           {settings.downloadServers.length === 0 && (
-            <p className="text-sm text-gray-500">No download servers configured</p>
+            <p className="text-sm text-zinc-500">No download servers configured</p>
           )}
           {settings.downloadServers.map((url, index) => (
             <div
               key={index}
-              className="flex items-center gap-2 bg-gray-800 rounded-lg px-3 py-2"
+              className="flex items-center gap-2 bg-forge-raised rounded-lg px-3 py-2"
             >
-              <span className="flex-1 text-sm text-white font-mono truncate">
+              <span className="flex-1 text-sm text-zinc-50 font-mono truncate">
                 {url}
               </span>
               <button
@@ -414,7 +414,7 @@ export default function Settings() {
           <button
             onClick={addServer}
             disabled={!newServerUrl.trim()}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 shrink-0"
+            className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-zinc-950 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 shrink-0"
           >
             Add
           </button>
@@ -423,7 +423,7 @@ export default function Settings() {
 
       {/* Throttle Detection */}
       <div className={sectionClass}>
-        <h3 className="text-lg font-semibold text-white mb-4">
+        <h3 className="text-lg font-semibold text-zinc-50 mb-4">
           Throttle Detection
         </h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -460,14 +460,14 @@ export default function Settings() {
         <button
           onClick={handleSave}
           disabled={saving}
-          className="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold text-sm rounded-lg transition-colors disabled:opacity-50"
+          className="px-6 py-2.5 bg-amber-500 hover:bg-amber-600 text-zinc-950 font-semibold text-sm rounded-lg transition-colors disabled:opacity-50"
         >
           {saving ? 'Saving...' : 'Save Settings'}
         </button>
         {saveMessage && (
           <span
             className={`text-sm ${
-              saveMessage.startsWith('Error') ? 'text-red-400' : 'text-green-400'
+              saveMessage.startsWith('Error') ? 'text-red-400' : 'text-emerald-400'
             }`}
           >
             {saveMessage}

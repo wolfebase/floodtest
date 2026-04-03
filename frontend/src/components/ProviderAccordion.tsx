@@ -38,8 +38,8 @@ export interface ProviderAccordionProps {
 // ── Color palette (Tailwind classes) ─────────────────────────────────
 
 const PROVIDER_DOT_COLORS = [
-  'bg-cyan-500', 'bg-violet-500', 'bg-emerald-500', 'bg-pink-500', 'bg-orange-500',
-  'bg-yellow-500', 'bg-blue-500', 'bg-purple-500', 'bg-green-500', 'bg-red-500',
+  'bg-amber-500', 'bg-orange-500', 'bg-yellow-500', 'bg-red-500', 'bg-emerald-500',
+  'bg-rose-500', 'bg-violet-500', 'bg-cyan-500', 'bg-lime-500', 'bg-pink-500',
 ]
 
 // ── Helpers ──────────────────────────────────────────────────────────
@@ -117,33 +117,22 @@ function timeUntil(isoString: string): string {
 function statusColor(status: string): string {
   switch (status) {
     case 'healthy':
-      return 'bg-green-900/50 text-green-400 border-green-800'
+      return 'bg-emerald-900/50 text-emerald-400 border-emerald-800'
     case 'testing':
-      return 'bg-blue-900/50 text-blue-400 border-blue-800'
+      return 'bg-amber-900/50 text-amber-400 border-amber-800'
     case 'cooldown':
-      return 'bg-yellow-900/50 text-yellow-400 border-yellow-800'
+      return 'bg-amber-900/50 text-amber-400 border-amber-800'
     case 'failed':
       return 'bg-red-900/50 text-red-400 border-red-800'
     case 'blocked':
       return 'bg-red-900/50 text-red-400 border-red-800'
     default:
-      return 'bg-gray-800 text-gray-400 border-gray-700'
+      return 'bg-forge-raised text-zinc-400 border-forge-border-strong'
   }
 }
 
-function rowBg(server: NormalizedServer): string {
-  switch (server.status) {
-    case 'testing':
-      return 'bg-blue-900/10'
-    case 'cooldown':
-      return 'bg-yellow-900/10'
-    case 'failed':
-      return 'bg-red-900/10'
-    case 'blocked':
-      return 'bg-red-950/20 opacity-60'
-    default:
-      return ''
-  }
+function rowBg(index: number): string {
+  return index % 2 === 0 ? 'bg-forge-base' : 'bg-forge-surface'
 }
 
 // ── Grouping logic ───────────────────────────────────────────────────
@@ -171,7 +160,7 @@ function buildProviderSections(servers: NormalizedServer[]): ProviderSection[] {
     const healthyCount = srvs.filter(s => s.status === 'healthy' || s.status === 'testing').length
     sections.push({
       name,
-      color: colorMap.get(name) || 'bg-gray-500',
+      color: colorMap.get(name) || 'bg-zinc-500',
       servers: srvs,
       totalSpeed,
       healthyCount,
@@ -232,7 +221,7 @@ export default function ProviderAccordion({ downloadServers, uploadServers, onUn
   if (normalized.length === 0) {
     return (
       <div className="px-4 py-6 text-center">
-        <span className="text-sm text-gray-500">No servers configured</span>
+        <span className="text-sm text-zinc-500">No servers configured</span>
       </div>
     )
   }
@@ -240,17 +229,17 @@ export default function ProviderAccordion({ downloadServers, uploadServers, onUn
   return (
     <div>
       {/* Expand All / Collapse All */}
-      <div className="flex justify-end px-4 py-2 border-b border-gray-800">
+      <div className="flex justify-end px-4 py-2 border-b border-forge-border">
         <button
           onClick={toggleAll}
-          className="text-xs text-gray-500 hover:text-gray-300 transition-colors"
+          className="text-xs text-zinc-500 hover:text-zinc-300 transition-colors"
         >
           {effectiveAllExpanded ? 'Collapse All' : 'Expand All'}
         </button>
       </div>
 
       {/* Provider sections */}
-      <div className="divide-y divide-gray-800">
+      <div className="divide-y divide-forge-border">
         {sections.map(section => {
           const isExpanded = expandedProviders.has(section.name)
 
@@ -259,19 +248,19 @@ export default function ProviderAccordion({ downloadServers, uploadServers, onUn
               {/* Provider header */}
               <button
                 onClick={() => toggleProvider(section.name)}
-                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-800/40 transition-colors text-left"
+                className="w-full flex items-center gap-3 px-4 py-2.5 hover:bg-forge-raised/40 transition-colors text-left"
               >
-                <span className="text-gray-500 text-xs w-3">
+                <span className="text-zinc-500 text-xs w-3">
                   {isExpanded ? '\u25BE' : '\u25B8'}
                 </span>
-                <span className="text-sm font-medium text-white">{section.name}</span>
+                <span className="text-sm font-medium text-zinc-50">{section.name}</span>
                 <span className={`w-2.5 h-2.5 rounded-full ${section.color} flex-shrink-0`} />
-                <span className="text-xs text-gray-500 flex items-center gap-1.5">
+                <span className="text-xs text-zinc-500 flex items-center gap-1.5">
                   <span>{section.servers.length} server{section.servers.length !== 1 ? 's' : ''}</span>
-                  <span className="text-gray-700">&middot;</span>
-                  <span className="text-gray-400">{formatSpeed(section.totalSpeed)}</span>
-                  <span className="text-gray-700">&middot;</span>
-                  <span className={section.healthyCount === section.servers.length ? 'text-green-500' : 'text-yellow-500'}>
+                  <span className="text-zinc-600">&middot;</span>
+                  <span className="text-zinc-400 font-mono">{formatSpeed(section.totalSpeed)}</span>
+                  <span className="text-zinc-600">&middot;</span>
+                  <span className={section.healthyCount === section.servers.length ? 'text-emerald-500' : 'text-amber-500'}>
                     {section.healthyCount}/{section.servers.length}
                   </span>
                 </span>
@@ -282,7 +271,7 @@ export default function ProviderAccordion({ downloadServers, uploadServers, onUn
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm text-left">
                     <thead>
-                      <tr className="border-b border-gray-800 text-gray-500 text-xs uppercase tracking-wide">
+                      <tr className="border-b border-forge-border text-zinc-500 text-xs uppercase tracking-wide">
                         <th className="px-4 py-1.5 pl-10 font-medium">Server</th>
                         <th className="px-4 py-1.5 font-medium">Location</th>
                         <th className="px-4 py-1.5 font-medium">Speed</th>
@@ -291,27 +280,27 @@ export default function ProviderAccordion({ downloadServers, uploadServers, onUn
                         <th className="px-4 py-1.5 font-medium">Status</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-gray-800/50">
+                    <tbody className="divide-y divide-forge-border/50">
                       {section.servers
                         .slice()
                         .sort((a, b) => b.speedBps - a.speedBps)
-                        .map(server => {
+                        .map((server, idx) => {
                           const cooldown = server.unhealthyUntil ? timeUntil(server.unhealthyUntil) : ''
                           return (
-                            <tr key={server.url} className={rowBg(server)}>
-                              <td className="px-4 py-1.5 pl-10 text-white font-medium whitespace-nowrap">
+                            <tr key={server.url} className={`${rowBg(idx)} ${server.status === 'blocked' ? 'opacity-60' : ''}`}>
+                              <td className="px-4 py-1.5 pl-10 text-zinc-50 font-medium whitespace-nowrap">
                                 {formatUrl(server.url)}
                               </td>
-                              <td className="px-4 py-1.5 text-gray-400 whitespace-nowrap">
+                              <td className="px-4 py-1.5 text-zinc-400 whitespace-nowrap">
                                 {server.location || '\u2014'}
                               </td>
-                              <td className="px-4 py-1.5 text-gray-300 whitespace-nowrap">
+                              <td className="px-4 py-1.5 text-zinc-300 font-mono whitespace-nowrap">
                                 {formatSpeed(server.speedBps)}
                               </td>
-                              <td className="px-4 py-1.5 text-gray-400 text-center">
+                              <td className="px-4 py-1.5 text-zinc-400 text-center">
                                 {server.activeStreams}
                               </td>
-                              <td className="px-4 py-1.5 text-gray-400 whitespace-nowrap">
+                              <td className="px-4 py-1.5 text-zinc-400 font-mono whitespace-nowrap">
                                 {formatBytes(server.bytesTransferred)}
                               </td>
                               <td className="px-4 py-1.5 whitespace-nowrap">
@@ -324,7 +313,7 @@ export default function ProviderAccordion({ downloadServers, uploadServers, onUn
                                   {server.status === 'blocked' && onUnblock && (
                                     <button
                                       onClick={() => onUnblock(server.url)}
-                                      className="px-2 py-0.5 rounded text-xs font-medium bg-gray-700 hover:bg-gray-600 text-gray-300"
+                                      className="px-2 py-0.5 rounded text-xs font-medium bg-red-600/20 text-red-400 border border-red-800 hover:bg-red-600/30"
                                     >
                                       Unblock
                                     </button>

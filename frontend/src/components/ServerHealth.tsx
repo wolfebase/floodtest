@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { api, ServerHealth as ServerHealthData, UploadServerHealth as UploadServerHealthData, SpeedTestResult } from '../api/client'
+import { groupDownloadServers } from '../utils/providerGrouping'
 import ProviderAccordion from './ProviderAccordion'
 
 interface Props {
@@ -112,16 +113,16 @@ function computeCounts(servers: NormalizedServer[]): StatusCounts {
 function InlineStatusCounts({ counts }: { counts: StatusCounts }) {
   return (
     <span className="flex items-center gap-2 text-xs">
-      <span className="text-gray-400">
-        <span className="text-white font-medium">{counts.total}</span> Total
+      <span className="text-zinc-400">
+        <span className="text-zinc-50 font-medium">{counts.total}</span> Total
       </span>
       {counts.healthy > 0 && (
-        <span className="text-green-400">
+        <span className="text-emerald-400">
           <span className="font-medium">{counts.healthy}</span> Healthy
         </span>
       )}
       {counts.cooldown > 0 && (
-        <span className="text-yellow-400">
+        <span className="text-amber-400">
           <span className="font-medium">{counts.cooldown}</span> Cooldown
         </span>
       )}
@@ -136,7 +137,7 @@ function InlineStatusCounts({ counts }: { counts: StatusCounts }) {
         </span>
       )}
       {counts.testing > 0 && (
-        <span className="text-blue-400">
+        <span className="text-amber-400">
           <span className="font-medium">{counts.testing}</span> Testing
         </span>
       )}
@@ -243,10 +244,14 @@ export default function ServerHealth({ speedTestRunning, speedTestCompleted, spe
   const downloadCounts = useMemo(() => computeCounts(normalizedDownloads), [normalizedDownloads])
   const uploadCounts = useMemo(() => computeCounts(normalizedUploads), [normalizedUploads])
 
+  // Provider throughput summary
+  const providerGroups = useMemo(() => groupDownloadServers(downloadServers), [downloadServers])
+  const maxProviderSpeed = useMemo(() => Math.max(...providerGroups.map(g => g.totalSpeedBps), 1), [providerGroups])
+
   if (loading) {
     return (
-      <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
-        <div className="text-sm text-gray-500">Loading server health...</div>
+      <div className="bg-forge-surface rounded-lg border border-forge-border p-4">
+        <div className="text-sm text-zinc-500">Loading server health...</div>
       </div>
     )
   }
@@ -257,24 +262,42 @@ export default function ServerHealth({ speedTestRunning, speedTestCompleted, spe
 
   return (
     <div className="space-y-2">
+      {/* Provider Breakdown summary */}
+      {providerGroups.length > 0 && (
+        <div className="bg-forge-surface rounded-lg border border-forge-border p-3 mb-2">
+          <span className="text-xs text-zinc-500 uppercase tracking-wide mb-2 block">Provider Breakdown</span>
+          {providerGroups.sort((a, b) => b.totalSpeedBps - a.totalSpeedBps).map(g => (
+            <div key={g.name} className="flex items-center gap-2 mb-1">
+              <span className="text-xs text-zinc-300 w-24 truncate">{g.name}</span>
+              <div className="flex-1 h-2 bg-forge-raised rounded-full overflow-hidden">
+                <div className="h-full bg-amber-500 rounded-full" style={{ width: `${(g.totalSpeedBps / maxProviderSpeed) * 100}%` }} />
+              </div>
+              <span className="text-xs font-mono text-zinc-400 w-20 text-right">
+                {g.totalSpeedBps > 1e9 ? (g.totalSpeedBps / 1e9).toFixed(1) + ' Gbps' : (g.totalSpeedBps / 1e6).toFixed(0) + ' Mbps'}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Download Servers Section */}
-      <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+      <div className="bg-forge-surface rounded-lg border border-forge-border overflow-hidden">
         {/* Collapsible header */}
         <div
-          className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none hover:bg-gray-800/50 transition-colors border-b border-cyan-900/30"
+          className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none hover:bg-forge-raised/50 transition-colors border-b border-orange-900/30"
           onClick={toggleDownload}
         >
           <div className="flex items-center gap-3">
-            <span className="text-cyan-400 text-sm">
+            <span className="text-orange-400 text-sm">
               {downloadCollapsed ? '\u25B8' : '\u25BE'}
             </span>
-            <span className="text-sm font-semibold text-cyan-400">Download Servers</span>
+            <span className="text-sm font-semibold text-orange-400">Download Servers</span>
             <InlineStatusCounts counts={downloadCounts} />
           </div>
 
           <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
             {lastTestTime && (
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-zinc-500">
                 Last test: {new Date(lastTestTime).toLocaleTimeString()}
               </span>
             )}
@@ -289,7 +312,7 @@ export default function ServerHealth({ speedTestRunning, speedTestCompleted, spe
             <button
               onClick={handleSpeedTest}
               disabled={isRunning}
-              className="px-4 py-1.5 rounded-lg text-sm font-medium bg-blue-600 hover:bg-blue-500 text-white disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-1.5 rounded-lg text-sm font-medium bg-amber-500 hover:bg-amber-600 text-zinc-950 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {isRunning ? 'Testing...' : 'Run Speed Test'}
             </button>
@@ -298,16 +321,16 @@ export default function ServerHealth({ speedTestRunning, speedTestCompleted, spe
 
         {/* Speed Test Progress Bar — between header and table */}
         {!downloadCollapsed && isRunning && total > 0 && (
-          <div className="px-4 py-3 border-b border-gray-800">
+          <div className="px-4 py-3 border-b border-forge-border">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm text-gray-400">
+              <span className="text-sm text-zinc-400">
                 Testing servers... {completed}/{total} complete
               </span>
-              <span className="text-sm text-gray-500">{pct}%</span>
+              <span className="text-sm text-zinc-500">{pct}%</span>
             </div>
-            <div className="bg-gray-800 rounded-full h-2">
+            <div className="bg-forge-raised rounded-full h-2">
               <div
-                className="bg-blue-500 h-2 rounded-full transition-all duration-500 ease-out"
+                className="bg-amber-500 h-2 rounded-full transition-all duration-500 ease-out"
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -324,17 +347,17 @@ export default function ServerHealth({ speedTestRunning, speedTestCompleted, spe
       </div>
 
       {/* Upload Servers Section */}
-      <div className="bg-gray-900 rounded-xl border border-gray-800 overflow-hidden">
+      <div className="bg-forge-surface rounded-lg border border-forge-border overflow-hidden">
         {/* Collapsible header */}
         <div
-          className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none hover:bg-gray-800/50 transition-colors border-b border-violet-900/30"
+          className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none hover:bg-forge-raised/50 transition-colors border-b border-slate-700/30"
           onClick={toggleUpload}
         >
           <div className="flex items-center gap-3">
-            <span className="text-violet-400 text-sm">
+            <span className="text-slate-400 text-sm">
               {uploadCollapsed ? '\u25B8' : '\u25BE'}
             </span>
-            <span className="text-sm font-semibold text-violet-400">Upload Servers</span>
+            <span className="text-sm font-semibold text-slate-400">Upload Servers</span>
             <InlineStatusCounts counts={uploadCounts} />
           </div>
 

@@ -133,7 +133,7 @@ export default function SchedulePage() {
   if (loading) {
     return (
       <div className="flex items-center justify-center h-40">
-        <p className="text-gray-400">Loading schedules...</p>
+        <p className="text-zinc-400">Loading schedules...</p>
       </div>
     )
   }
@@ -149,24 +149,24 @@ export default function SchedulePage() {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold text-white">Schedules</h2>
+        <h2 className="text-xl font-bold text-zinc-50">Schedules</h2>
         <button
           onClick={openAddForm}
-          className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-500 transition-colors"
+          className="px-4 py-2 rounded-lg bg-amber-500 text-zinc-950 text-sm font-medium hover:bg-amber-600 transition-colors"
         >
           Add Schedule
         </button>
       </div>
 
       {showForm && (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-4 space-y-4">
-          <h3 className="text-lg font-semibold text-white">
+        <div className="bg-forge-surface rounded-lg border border-forge-border p-4 space-y-4">
+          <h3 className="text-lg font-semibold text-zinc-50">
             {editingId !== null ? 'Edit Schedule' : 'New Schedule'}
           </h3>
 
           {/* Days of week */}
           <div>
-            <label className="block text-sm text-gray-400 mb-2">Days of Week</label>
+            <label className="block text-sm text-zinc-400 mb-2">Days of Week</label>
             <div className="flex gap-2">
               {DAY_NAMES.map((name, i) => (
                 <button
@@ -175,8 +175,8 @@ export default function SchedulePage() {
                   onClick={() => toggleDay(i)}
                   className={`w-10 h-10 rounded-lg text-sm font-medium transition-colors ${
                     form.daysOfWeek.includes(i)
-                      ? 'bg-blue-600 text-white'
-                      : 'bg-gray-800 text-gray-400 hover:bg-gray-700 hover:text-gray-200'
+                      ? 'bg-amber-500 text-zinc-950'
+                      : 'bg-forge-raised text-zinc-500 hover:text-zinc-300'
                   }`}
                 >
                   {name}
@@ -188,21 +188,21 @@ export default function SchedulePage() {
           {/* Time range */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Start Time</label>
+              <label className="block text-sm text-zinc-400 mb-1">Start Time</label>
               <input
                 type="time"
                 value={form.startTime}
                 onChange={(e) => setForm((prev) => ({ ...prev, startTime: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white text-sm focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-2 rounded-lg bg-forge-raised border border-forge-border-strong text-zinc-50 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">End Time</label>
+              <label className="block text-sm text-zinc-400 mb-1">End Time</label>
               <input
                 type="time"
                 value={form.endTime}
                 onChange={(e) => setForm((prev) => ({ ...prev, endTime: e.target.value }))}
-                className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white text-sm focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-2 rounded-lg bg-forge-raised border border-forge-border-strong text-zinc-50 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -210,7 +210,7 @@ export default function SchedulePage() {
           {/* Speed targets */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Download Speed (Mbps)</label>
+              <label className="block text-sm text-zinc-400 mb-1">Download Speed (Mbps)</label>
               <input
                 type="number"
                 min={1}
@@ -221,11 +221,11 @@ export default function SchedulePage() {
                     downloadMbps: parseInt(e.target.value) || 0,
                   }))
                 }
-                className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white text-sm focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-2 rounded-lg bg-forge-raised border border-forge-border-strong text-zinc-50 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               />
             </div>
             <div>
-              <label className="block text-sm text-gray-400 mb-1">Upload Speed (Mbps)</label>
+              <label className="block text-sm text-zinc-400 mb-1">Upload Speed (Mbps)</label>
               <input
                 type="number"
                 min={1}
@@ -236,7 +236,7 @@ export default function SchedulePage() {
                     uploadMbps: parseInt(e.target.value) || 0,
                   }))
                 }
-                className="w-full px-3 py-2 rounded-lg bg-gray-800 border border-gray-700 text-white text-sm focus:outline-none focus:border-blue-500"
+                className="w-full px-3 py-2 rounded-lg bg-forge-raised border border-forge-border-strong text-zinc-50 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
               />
             </div>
           </div>
@@ -246,13 +246,13 @@ export default function SchedulePage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-500 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="px-4 py-2 rounded-lg bg-amber-500 text-zinc-950 text-sm font-medium hover:bg-amber-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {saving ? 'Saving...' : 'Save'}
             </button>
             <button
               onClick={closeForm}
-              className="px-4 py-2 rounded-lg bg-gray-800 text-gray-300 text-sm font-medium hover:bg-gray-700 transition-colors"
+              className="px-4 py-2 rounded-lg bg-forge-raised text-zinc-300 text-sm font-medium hover:bg-forge-border-strong transition-colors"
             >
               Cancel
             </button>
@@ -261,9 +261,9 @@ export default function SchedulePage() {
       )}
 
       {schedules.length === 0 && !showForm ? (
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-8 text-center">
-          <p className="text-gray-400 mb-2">No schedules configured</p>
-          <p className="text-gray-500 text-sm">
+        <div className="bg-forge-surface rounded-lg border border-forge-border p-8 text-center">
+          <p className="text-zinc-400 mb-2">No schedules configured</p>
+          <p className="text-zinc-500 text-sm">
             Add a schedule to automatically adjust bandwidth targets at specific times.
           </p>
         </div>
@@ -272,25 +272,25 @@ export default function SchedulePage() {
           {schedules.map((schedule) => (
             <div
               key={schedule.id}
-              className={`bg-gray-900 rounded-xl border border-gray-800 p-4 ${
-                !schedule.enabled ? 'opacity-50' : ''
-              }`}
+              className={`bg-forge-surface rounded-lg border border-forge-border p-4 ${
+                schedule.enabled ? 'border-l-2 border-l-emerald-500' : 'border-l-2 border-l-zinc-700'
+              } ${!schedule.enabled ? 'opacity-50' : ''}`}
             >
               <div className="flex items-start justify-between">
                 <div className="space-y-1.5">
                   <div className="flex items-center gap-3">
-                    <span className="text-white font-medium">
+                    <span className="text-zinc-50 font-medium">
                       {formatDays(schedule.daysOfWeek)}
                     </span>
-                    <span className="text-gray-400 text-sm">
+                    <span className="text-zinc-400 text-sm">
                       {schedule.startTime} - {schedule.endTime}
                     </span>
                   </div>
                   <div className="flex items-center gap-4 text-sm">
-                    <span className="text-green-400">
+                    <span className="text-emerald-400 font-mono">
                       DL: {formatSpeed(schedule.downloadMbps)}
                     </span>
-                    <span className="text-blue-400">
+                    <span className="text-amber-400 font-mono">
                       UL: {formatSpeed(schedule.uploadMbps)}
                     </span>
                   </div>
@@ -301,7 +301,7 @@ export default function SchedulePage() {
                   <button
                     onClick={() => handleToggleEnabled(schedule)}
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                      schedule.enabled ? 'bg-blue-600' : 'bg-gray-700'
+                      schedule.enabled ? 'bg-amber-500' : 'bg-zinc-700'
                     }`}
                     title={schedule.enabled ? 'Disable' : 'Enable'}
                   >
@@ -314,13 +314,13 @@ export default function SchedulePage() {
 
                   <button
                     onClick={() => openEditForm(schedule)}
-                    className="px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+                    className="px-3 py-1.5 rounded-lg text-sm text-zinc-400 hover:text-zinc-50 hover:bg-forge-raised transition-colors"
                   >
                     Edit
                   </button>
                   <button
                     onClick={() => schedule.id !== undefined && handleDelete(schedule.id)}
-                    className="px-3 py-1.5 rounded-lg text-sm text-gray-400 hover:text-red-400 hover:bg-gray-800 transition-colors"
+                    className="px-3 py-1.5 rounded-lg text-sm text-zinc-400 hover:text-red-400 hover:bg-forge-raised transition-colors"
                   >
                     Delete
                   </button>

@@ -85,11 +85,11 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
   }
 
   const inputClass =
-    'w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-  const labelClass = 'block text-sm font-medium text-gray-300 mb-1'
+    'w-full px-3 py-2 bg-forge-raised border border-forge-border-strong rounded-lg text-zinc-50 text-sm placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent'
+  const labelClass = 'block text-sm font-medium text-zinc-300 mb-1'
 
   return (
-    <div className="min-h-screen bg-gray-950 flex items-center justify-center p-4">
+    <div className="min-h-screen bg-forge-base flex items-center justify-center p-4">
       <div className="w-full max-w-lg">
         {/* Step indicators (hidden on welcome screen) */}
         {step >= 1 && (
@@ -99,10 +99,10 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
                     s === step
-                      ? 'bg-blue-600 text-white'
+                      ? 'bg-amber-500 text-zinc-950'
                       : s < step
-                      ? 'bg-green-600 text-white'
-                      : 'bg-gray-800 text-gray-500 border border-gray-700'
+                      ? 'bg-emerald-600 text-zinc-50'
+                      : 'bg-forge-raised text-zinc-500 border border-forge-border-strong'
                   }`}
                 >
                   {s < step ? (
@@ -116,7 +116,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 {s < 3 && (
                   <div
                     className={`w-12 h-0.5 ${
-                      s < step ? 'bg-green-600' : 'bg-gray-800'
+                      s < step ? 'bg-emerald-600' : 'bg-forge-raised'
                     }`}
                   />
                 )}
@@ -126,14 +126,14 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         )}
 
         {/* Card */}
-        <div className="bg-gray-900 rounded-xl border border-gray-800 p-6">
+        <div className="bg-forge-surface rounded-lg border border-forge-border p-4">
           {/* Step 0: Welcome */}
           {step === 0 && (
             <div className="space-y-6 text-center">
               {/* Wave/signal icon */}
               <div className="flex justify-center">
                 <svg
-                  className="w-16 h-16 text-blue-500"
+                  className="w-16 h-16 text-amber-500"
                   viewBox="0 0 64 64"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
@@ -157,11 +157,11 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
               </div>
 
               <div>
-                <h1 className="text-3xl font-bold text-white tracking-tight">FloodTest</h1>
-                <p className="text-blue-400 text-sm font-medium mt-1">ISP Throttle Detection Tool</p>
+                <h1 className="text-3xl font-bold text-zinc-50 tracking-tight">FloodTest</h1>
+                <p className="text-amber-400 text-sm font-medium mt-1">ISP Throttle Detection Tool</p>
               </div>
 
-              <p className="text-gray-400 text-sm leading-relaxed text-left">
+              <p className="text-zinc-400 text-sm leading-relaxed text-left">
                 FloodTest saturates your WAN connection in both directions — downloading from
                 public speed test servers and uploading to Backblaze B2 cloud storage — to detect
                 if your ISP throttles your connection after sustained heavy usage. All traffic is
@@ -170,7 +170,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
 
               <button
                 onClick={() => setStep(1)}
-                className="w-full px-5 py-3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                className="w-full px-5 py-3 bg-amber-500 hover:bg-amber-600 text-zinc-950 text-sm font-semibold rounded-lg transition-colors"
               >
                 Get Started
               </button>
@@ -180,19 +180,19 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
           {/* Step 1: Upload Storage (B2 Credentials) */}
           {step === 1 && (
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-white">Upload Storage</h2>
-              <p className="text-sm text-gray-400">
+              <h2 className="text-xl font-bold text-zinc-50">Upload Storage</h2>
+              <p className="text-sm text-zinc-400">
                 FloodTest needs somewhere to upload data. We use Backblaze B2 because ingress is
                 free and unlimited. Each uploaded object is deleted immediately — your storage
                 stays at ~0.
               </p>
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-zinc-500">
                 Don't have a B2 account?{' '}
                 <a
                   href="https://www.backblaze.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-blue-400 hover:text-blue-300 underline"
+                  className="text-amber-400 hover:text-amber-300 underline"
                 >
                   It's free at backblaze.com
                 </a>
@@ -234,9 +234,9 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
               {/* B2 Endpoint */}
               <div>
                 <label className={labelClass}>S3 Endpoint</label>
-                <p className="text-xs text-gray-500 mb-2">
+                <p className="text-xs text-zinc-500 mb-2">
                   This must match your B2 account. In your{' '}
-                  <a href="https://secure.backblaze.com/b2_buckets.htm" target="_blank" rel="noopener noreferrer" className="text-blue-400 hover:text-blue-300 underline">B2 dashboard</a>
+                  <a href="https://secure.backblaze.com/b2_buckets.htm" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:text-amber-300 underline">B2 dashboard</a>
                   , go to Buckets and copy the "Endpoint" value — or select from the list below.
                 </p>
                 <select
@@ -248,7 +248,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                       setB2Endpoint('')
                     }
                   }}
-                  className="w-full px-3 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-2"
+                  className="w-full px-3 py-2 bg-forge-raised border border-forge-border-strong rounded-lg text-zinc-50 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent mb-2"
                 >
                   {B2_ENDPOINTS.map((ep) => (
                     <option key={ep.id} value={ep.url}>{ep.id} — {ep.url.replace('https://', '')}</option>
@@ -276,12 +276,12 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                     !b2Endpoint ||
                     testStatus === 'testing'
                   }
-                  className="px-4 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 border border-amber-500/50 text-amber-400 hover:bg-amber-500/10 bg-transparent text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {testStatus === 'testing' ? 'Testing...' : 'Test Connection'}
                 </button>
                 {testStatus === 'success' && (
-                  <span className="text-sm text-green-400">{testMessage}</span>
+                  <span className="text-sm text-emerald-400">{testMessage}</span>
                 )}
                 {testStatus === 'error' && (
                   <span className="text-sm text-red-400">{testMessage}</span>
@@ -292,7 +292,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 <button
                   onClick={() => setStep(2)}
                   disabled={testStatus !== 'success'}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-zinc-950 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
@@ -303,8 +303,8 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
           {/* Step 2: Speed Targets */}
           {step === 2 && (
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-white">Speed Targets</h2>
-              <p className="text-sm text-gray-400">
+              <h2 className="text-xl font-bold text-zinc-50">Speed Targets</h2>
+              <p className="text-sm text-zinc-400">
                 Set the bandwidth target for each direction. FloodTest will try to sustain this
                 speed. Set these to your ISP's advertised speed or slightly below.
               </p>
@@ -322,8 +322,8 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                       }}
                       className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                         downloadMbps === preset.mbps && uploadMbps === preset.mbps
-                          ? 'border-blue-500 bg-blue-500/10 text-blue-400'
-                          : 'border-gray-700 bg-gray-800 text-gray-300 hover:border-gray-600'
+                          ? 'border-amber-500 bg-amber-500 text-zinc-950'
+                          : 'border-forge-border-strong bg-forge-raised text-zinc-300 hover:border-zinc-600'
                       }`}
                     >
                       {preset.label}
@@ -339,7 +339,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                   value={downloadMbps}
                   onChange={(e) => setDownloadMbps(Number(e.target.value))}
                   min={1}
-                  className={inputClass}
+                  className={`${inputClass} font-mono`}
                 />
               </div>
 
@@ -350,20 +350,20 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                   value={uploadMbps}
                   onChange={(e) => setUploadMbps(Number(e.target.value))}
                   min={1}
-                  className={inputClass}
+                  className={`${inputClass} font-mono`}
                 />
               </div>
 
               <div className="flex justify-between pt-2">
                 <button
                   onClick={() => setStep(1)}
-                  className="px-5 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
+                  className="px-5 py-2 bg-forge-raised hover:bg-forge-border-strong text-zinc-50 text-sm font-medium rounded-lg transition-colors"
                 >
                   Back
                 </button>
                 <button
                   onClick={() => setStep(3)}
-                  className="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-medium rounded-lg transition-colors"
+                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-zinc-950 text-sm font-medium rounded-lg transition-colors"
                 >
                   Next
                 </button>
@@ -374,48 +374,48 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
           {/* Step 3: Summary */}
           {step === 3 && (
             <div className="space-y-4">
-              <h2 className="text-xl font-bold text-white">You're All Set</h2>
-              <p className="text-sm text-gray-400">
+              <h2 className="text-xl font-bold text-zinc-50">You're All Set</h2>
+              <p className="text-sm text-zinc-400">
                 Review your configuration before launching.
               </p>
 
-              <div className="bg-gray-800 rounded-lg p-4 space-y-3 text-sm">
-                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+              <div className="bg-forge-raised rounded-lg p-4 space-y-3 text-sm">
+                <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                   Upload Storage
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">B2 Key ID</span>
-                  <span className="text-white font-mono">
+                  <span className="text-zinc-400">B2 Key ID</span>
+                  <span className="text-zinc-50 font-mono">
                     {b2KeyId.slice(0, 8)}...
                   </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Bucket</span>
-                  <span className="text-white">{b2BucketName}</span>
+                  <span className="text-zinc-400">Bucket</span>
+                  <span className="text-zinc-50">{b2BucketName}</span>
                 </div>
                 <div className="flex justify-between items-start">
-                  <span className="text-gray-400">Endpoint</span>
-                  <span className="text-white text-xs font-mono text-right max-w-[250px] break-all">
+                  <span className="text-zinc-400">Endpoint</span>
+                  <span className="text-zinc-50 text-xs font-mono text-right max-w-[250px] break-all">
                     {b2Endpoint}
                   </span>
                 </div>
 
-                <div className="border-t border-gray-700 my-1" />
+                <div className="border-t border-forge-border-strong my-1" />
 
-                <div className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
+                <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                   Speed Targets
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Download</span>
-                  <span className="text-green-400 font-medium">{downloadMbps} Mbps</span>
+                  <span className="text-zinc-400">Download</span>
+                  <span className="text-emerald-400 font-medium font-mono">{downloadMbps} Mbps</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-400">Upload</span>
-                  <span className="text-blue-400 font-medium">{uploadMbps} Mbps</span>
+                  <span className="text-zinc-400">Upload</span>
+                  <span className="text-amber-400 font-medium font-mono">{uploadMbps} Mbps</span>
                 </div>
               </div>
 
-              <p className="text-xs text-gray-500">
+              <p className="text-xs text-zinc-500">
                 You can adjust all settings later from the Settings page. Use the Schedule tab to
                 automate test runs.
               </p>
@@ -423,14 +423,14 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
               <div className="flex justify-between pt-2">
                 <button
                   onClick={() => setStep(2)}
-                  className="px-5 py-2 bg-gray-700 hover:bg-gray-600 text-white text-sm font-medium rounded-lg transition-colors"
+                  className="px-5 py-2 bg-forge-raised hover:bg-forge-border-strong text-zinc-50 text-sm font-medium rounded-lg transition-colors"
                 >
                   Back
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-5 py-2 bg-green-600 hover:bg-green-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+                  className="px-5 py-2 bg-red-600 hover:bg-red-500 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : 'Launch FloodTest'}
                 </button>
