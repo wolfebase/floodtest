@@ -49,6 +49,15 @@ CREATE TABLE IF NOT EXISTS update_history (
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
+CREATE TABLE IF NOT EXISTS speedtest_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    timestamp DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    download_mbps REAL NOT NULL,
+    upload_mbps REAL NOT NULL,
+    streams INTEGER NOT NULL DEFAULT 16
+);
+
 CREATE INDEX IF NOT EXISTS idx_throughput_timestamp ON throughput_history(timestamp);
 CREATE INDEX IF NOT EXISTS idx_throttle_timestamp ON throttle_events(timestamp);
+CREATE INDEX IF NOT EXISTS idx_speedtest_history_timestamp ON speedtest_history(timestamp);
 `
