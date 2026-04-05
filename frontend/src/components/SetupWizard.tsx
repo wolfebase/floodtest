@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { motion } from 'framer-motion'
 import { api } from '../api/client'
 
 interface SetupWizardProps {
@@ -6,7 +7,7 @@ interface SetupWizardProps {
 }
 
 // B2 assigns each account to a specific cluster. The user MUST use the endpoint
-// that matches their account — it's not a preference. The simplest UX is to let
+// that matches their account -- it's not a preference. The simplest UX is to let
 // them paste their endpoint or pick from the known list.
 const B2_ENDPOINTS = [
   { id: 'us-west-000', url: 'https://s3.us-west-000.backblazeb2.com' },
@@ -85,7 +86,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
   }
 
   const inputClass =
-    'w-full px-3 py-2 bg-forge-raised border border-forge-border-strong rounded-lg text-zinc-50 text-sm placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent'
+    'w-full px-3 py-2 glass-inset rounded-xl text-zinc-50 text-sm placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500/30'
   const labelClass = 'block text-sm font-medium text-zinc-300 mb-1'
 
   return (
@@ -99,7 +100,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-semibold transition-colors ${
                     s === step
-                      ? 'bg-amber-500 text-zinc-950'
+                      ? 'bg-cyan-500 text-zinc-950'
                       : s < step
                       ? 'bg-emerald-600 text-zinc-50'
                       : 'bg-forge-raised text-zinc-500 border border-forge-border-strong'
@@ -126,14 +127,19 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
         )}
 
         {/* Card */}
-        <div className="bg-forge-surface rounded-lg border border-forge-border p-4">
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="glass-strong rounded-xl p-4"
+        >
           {/* Step 0: Welcome */}
           {step === 0 && (
             <div className="space-y-6 text-center">
               {/* Wave/signal icon */}
               <div className="flex justify-center">
                 <svg
-                  className="w-16 h-16 text-amber-500"
+                  className="w-16 h-16 text-cyan-500"
                   viewBox="0 0 64 64"
                   fill="none"
                   xmlns="http://www.w3.org/2000/svg"
@@ -158,7 +164,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
 
               <div>
                 <h1 className="text-3xl font-bold text-zinc-50 tracking-tight">FloodTest</h1>
-                <p className="text-amber-400 text-sm font-medium mt-1">ISP Throttle Detection Tool</p>
+                <p className="text-cyan-400 text-sm font-medium mt-1">ISP Throttle Detection Tool</p>
               </div>
 
               <p className="text-zinc-400 text-sm leading-relaxed text-left">
@@ -170,7 +176,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
 
               <button
                 onClick={() => setStep(1)}
-                className="w-full px-5 py-3 bg-amber-500 hover:bg-amber-600 text-zinc-950 text-sm font-semibold rounded-lg transition-colors"
+                className="w-full px-5 py-3 bg-cyan-500 hover:bg-cyan-400 text-zinc-950 text-sm font-semibold rounded-xl transition-colors"
               >
                 Get Started
               </button>
@@ -192,7 +198,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                   href="https://www.backblaze.com"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="text-amber-400 hover:text-amber-300 underline"
+                  className="text-cyan-400 hover:text-cyan-300 underline"
                 >
                   It's free at backblaze.com
                 </a>
@@ -236,7 +242,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 <label className={labelClass}>S3 Endpoint</label>
                 <p className="text-xs text-zinc-500 mb-2">
                   This must match your B2 account. In your{' '}
-                  <a href="https://secure.backblaze.com/b2_buckets.htm" target="_blank" rel="noopener noreferrer" className="text-amber-400 hover:text-amber-300 underline">B2 dashboard</a>
+                  <a href="https://secure.backblaze.com/b2_buckets.htm" target="_blank" rel="noopener noreferrer" className="text-cyan-400 hover:text-cyan-300 underline">B2 dashboard</a>
                   , go to Buckets and copy the "Endpoint" value — or select from the list below.
                 </p>
                 <select
@@ -248,7 +254,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                       setB2Endpoint('')
                     }
                   }}
-                  className="w-full px-3 py-2 bg-forge-raised border border-forge-border-strong rounded-lg text-zinc-50 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent mb-2"
+                  className="w-full px-3 py-2 glass-inset rounded-xl text-zinc-50 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500/30 mb-2"
                 >
                   {B2_ENDPOINTS.map((ep) => (
                     <option key={ep.id} value={ep.url}>{ep.id} — {ep.url.replace('https://', '')}</option>
@@ -276,7 +282,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                     !b2Endpoint ||
                     testStatus === 'testing'
                   }
-                  className="px-4 py-2 border border-amber-500/50 text-amber-400 hover:bg-amber-500/10 bg-transparent text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2 border border-cyan-500/50 text-cyan-400 hover:bg-cyan-500/10 bg-transparent text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {testStatus === 'testing' ? 'Testing...' : 'Test Connection'}
                 </button>
@@ -292,7 +298,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 <button
                   onClick={() => setStep(2)}
                   disabled={testStatus !== 'success'}
-                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-zinc-950 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-zinc-950 text-sm font-medium rounded-xl transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
@@ -322,7 +328,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                       }}
                       className={`px-3 py-2 text-sm font-medium rounded-lg border transition-colors ${
                         downloadMbps === preset.mbps && uploadMbps === preset.mbps
-                          ? 'border-amber-500 bg-amber-500 text-zinc-950'
+                          ? 'border-cyan-500 bg-cyan-500 text-zinc-950'
                           : 'border-forge-border-strong bg-forge-raised text-zinc-300 hover:border-zinc-600'
                       }`}
                     >
@@ -357,13 +363,13 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
               <div className="flex justify-between pt-2">
                 <button
                   onClick={() => setStep(1)}
-                  className="px-5 py-2 bg-forge-raised hover:bg-forge-border-strong text-zinc-50 text-sm font-medium rounded-lg transition-colors"
+                  className="px-5 py-2 glass hover:bg-white/[0.06] text-zinc-50 text-sm font-medium rounded-xl transition-colors"
                 >
                   Back
                 </button>
                 <button
                   onClick={() => setStep(3)}
-                  className="px-5 py-2 bg-amber-500 hover:bg-amber-600 text-zinc-950 text-sm font-medium rounded-lg transition-colors"
+                  className="px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-zinc-950 text-sm font-medium rounded-xl transition-colors"
                 >
                   Next
                 </button>
@@ -379,7 +385,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 Review your configuration before launching.
               </p>
 
-              <div className="bg-forge-raised rounded-lg p-4 space-y-3 text-sm">
+              <div className="glass-inset rounded-xl p-4 space-y-3 text-sm">
                 <div className="text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                   Upload Storage
                 </div>
@@ -407,7 +413,7 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
                 </div>
                 <div className="flex justify-between">
                   <span className="text-zinc-400">Download</span>
-                  <span className="text-emerald-400 font-medium font-mono">{downloadMbps} Mbps</span>
+                  <span className="text-cyan-400 font-medium font-mono">{downloadMbps} Mbps</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-zinc-400">Upload</span>
@@ -423,21 +429,21 @@ export default function SetupWizard({ onComplete }: SetupWizardProps) {
               <div className="flex justify-between pt-2">
                 <button
                   onClick={() => setStep(2)}
-                  className="px-5 py-2 bg-forge-raised hover:bg-forge-border-strong text-zinc-50 text-sm font-medium rounded-lg transition-colors"
+                  className="px-5 py-2 glass hover:bg-white/[0.06] text-zinc-50 text-sm font-medium rounded-xl transition-colors"
                 >
                   Back
                 </button>
                 <button
                   onClick={handleSave}
                   disabled={saving}
-                  className="px-5 py-2 bg-red-600 hover:bg-red-500 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50"
+                  className="px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-zinc-950 text-sm font-semibold rounded-xl transition-colors disabled:opacity-50"
                 >
                   {saving ? 'Saving...' : 'Launch FloodTest'}
                 </button>
               </div>
             </div>
           )}
-        </div>
+        </motion.div>
       </div>
     </div>
   )

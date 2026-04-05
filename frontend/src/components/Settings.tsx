@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { api, Settings as SettingsType } from '../api/client'
 import {
   Cloud, Gauge, Layers, Server, Shield, Plus, X,
@@ -119,7 +120,7 @@ export default function Settings() {
   }
 
   const inputClass =
-    'w-full px-3 py-2 bg-forge-raised border border-white/[0.06] rounded-lg text-zinc-50 text-sm placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-amber-500/40 focus:border-amber-500/30 transition-colors'
+    'w-full px-3 py-2 glass-inset rounded-xl text-zinc-50 text-sm placeholder-zinc-600 focus:outline-none focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500/30 transition-colors'
   const labelClass = 'block text-[10px] font-semibold text-zinc-600 uppercase tracking-wider mb-1.5'
 
   const uploadModes = [
@@ -131,13 +132,22 @@ export default function Settings() {
   return (
     <div className="max-w-[1400px] space-y-6">
       {/* Page Header */}
-      <div className="animate-fade-in">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0 }}
+      >
         <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Settings</h1>
         <p className="text-sm text-zinc-500 mt-0.5">Engine configuration</p>
-      </div>
+      </motion.div>
 
       {/* Upload Configuration */}
-      <div className="animate-fade-in-up stagger-1 bg-forge-surface rounded-xl border border-forge-border p-5">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.08 }}
+        className="glass-card p-5"
+      >
         <div className="flex items-center gap-2.5 mb-5">
           <div className="w-7 h-7 rounded-lg bg-blue-500/10 flex items-center justify-center">
             <Cloud size={14} className="text-blue-400" />
@@ -145,17 +155,17 @@ export default function Settings() {
           <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Upload Configuration</h3>
         </div>
 
-        {/* Upload Mode selector — segmented control */}
+        {/* Upload Mode selector -- segmented control */}
         <div className="mb-5">
           <label className={labelClass}>Upload Mode</label>
-          <div className="flex rounded-lg bg-forge-raised border border-white/[0.06] p-0.5 gap-0.5">
+          <div className="flex rounded-xl glass-inset p-0.5 gap-0.5">
             {uploadModes.map((mode) => (
               <button
                 key={mode.value}
                 onClick={() => update({ uploadMode: mode.value })}
-                className={`flex-1 px-3 py-2 rounded-md text-xs font-medium transition-all ${
+                className={`flex-1 px-3 py-2 rounded-lg text-xs font-medium transition-all ${
                   settings.uploadMode === mode.value
-                    ? 'bg-amber-500/15 text-amber-400 border border-amber-500/20 shadow-sm'
+                    ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/20 shadow-sm'
                     : 'text-zinc-500 hover:text-zinc-300 border border-transparent'
                 }`}
               >
@@ -252,7 +262,7 @@ export default function Settings() {
               <button
                 onClick={handleTestConnection}
                 disabled={testStatus === 'testing'}
-                className="inline-flex items-center gap-2 px-4 py-2 border border-amber-500/30 text-amber-400 hover:bg-amber-500/10 bg-transparent text-sm font-medium rounded-lg transition-all disabled:opacity-50"
+                className="inline-flex items-center gap-2 px-4 py-2 border border-cyan-500/30 text-cyan-400 hover:bg-cyan-500/10 bg-transparent text-sm font-medium rounded-lg transition-all disabled:opacity-50"
               >
                 {testStatus === 'testing' ? (
                   <Loader2 size={14} className="animate-spin" />
@@ -288,7 +298,7 @@ export default function Settings() {
               {settings.uploadEndpoints.map((url, index) => (
                 <div
                   key={index}
-                  className="flex items-center gap-2 bg-forge-raised border border-white/[0.06] rounded-lg px-3 py-2.5 group"
+                  className="flex items-center gap-2 glass-inset rounded-xl px-3 py-2.5 group"
                 >
                   <div className="w-5 h-5 rounded-md bg-blue-500/10 flex items-center justify-center shrink-0">
                     <Cloud size={10} className="text-blue-400" />
@@ -320,7 +330,7 @@ export default function Settings() {
               <button
                 onClick={addUploadEndpoint}
                 disabled={!newUploadEndpoint.trim()}
-                className="inline-flex items-center gap-1.5 px-3 py-2 bg-forge-raised border border-white/[0.06] hover:border-amber-500/30 hover:text-amber-400 text-zinc-400 text-sm font-medium rounded-lg transition-all disabled:opacity-40 shrink-0"
+                className="inline-flex items-center gap-1.5 px-3 py-2 glass-inset rounded-xl hover:border-cyan-500/30 hover:text-cyan-400 text-zinc-400 text-sm font-medium transition-all disabled:opacity-40 shrink-0"
               >
                 <Plus size={14} />
                 Add
@@ -331,7 +341,7 @@ export default function Settings() {
 
         {/* Local mode: info box */}
         {settings.uploadMode === 'local' && (
-          <div className="mb-5 bg-forge-raised border border-white/[0.06] rounded-lg p-4">
+          <div className="mb-5 glass-inset rounded-xl p-4">
             <p className="text-sm text-zinc-400">
               Uploads to this app's built-in discard endpoint. Does not test real WAN upload bandwidth &mdash; only useful for testing the upload engine itself.
             </p>
@@ -351,13 +361,18 @@ export default function Settings() {
             className={`${inputClass} font-mono`}
           />
         </div>
-      </div>
+      </motion.div>
 
       {/* Speed Targets */}
-      <div className="animate-fade-in-up stagger-2 bg-forge-surface rounded-xl border border-forge-border p-5">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.16 }}
+        className="glass-card p-5"
+      >
         <div className="flex items-center gap-2.5 mb-5">
-          <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center">
-            <Gauge size={14} className="text-amber-400" />
+          <div className="w-7 h-7 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+            <Gauge size={14} className="text-cyan-400" />
           </div>
           <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Speed Targets</h3>
         </div>
@@ -387,10 +402,15 @@ export default function Settings() {
             />
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Concurrency */}
-      <div className="animate-fade-in-up stagger-3 bg-forge-surface rounded-xl border border-forge-border p-5">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.24 }}
+        className="glass-card p-5"
+      >
         <div className="flex items-center gap-2.5 mb-5">
           <div className="w-7 h-7 rounded-lg bg-violet-500/10 flex items-center justify-center">
             <Layers size={14} className="text-violet-400" />
@@ -423,10 +443,15 @@ export default function Settings() {
             />
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Download Servers */}
-      <div className="animate-fade-in-up stagger-4 bg-forge-surface rounded-xl border border-forge-border p-5">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.32 }}
+        className="glass-card p-5"
+      >
         <div className="flex items-center gap-2.5 mb-5">
           <div className="w-7 h-7 rounded-lg bg-emerald-500/10 flex items-center justify-center">
             <Server size={14} className="text-emerald-400" />
@@ -440,7 +465,7 @@ export default function Settings() {
           {settings.downloadServers.map((url, index) => (
             <div
               key={index}
-              className="flex items-center gap-2 bg-forge-raised border border-white/[0.06] rounded-lg px-3 py-2.5 group"
+              className="flex items-center gap-2 glass-inset rounded-xl px-3 py-2.5 group"
             >
               <div className="w-5 h-5 rounded-md bg-emerald-500/10 flex items-center justify-center shrink-0">
                 <Server size={10} className="text-emerald-400" />
@@ -472,16 +497,21 @@ export default function Settings() {
           <button
             onClick={addServer}
             disabled={!newServerUrl.trim()}
-            className="inline-flex items-center gap-1.5 px-3 py-2 bg-forge-raised border border-white/[0.06] hover:border-amber-500/30 hover:text-amber-400 text-zinc-400 text-sm font-medium rounded-lg transition-all disabled:opacity-40 shrink-0"
+            className="inline-flex items-center gap-1.5 px-3 py-2 glass-inset rounded-xl hover:border-cyan-500/30 hover:text-cyan-400 text-zinc-400 text-sm font-medium transition-all disabled:opacity-40 shrink-0"
           >
             <Plus size={14} />
             Add
           </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Throttle Detection */}
-      <div className="animate-fade-in-up stagger-5 bg-forge-surface rounded-xl border border-forge-border p-5">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.40 }}
+        className="glass-card p-5"
+      >
         <div className="flex items-center gap-2.5 mb-5">
           <div className="w-7 h-7 rounded-lg bg-rose-500/10 flex items-center justify-center">
             <Shield size={14} className="text-rose-400" />
@@ -515,14 +545,19 @@ export default function Settings() {
             />
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Save button row */}
-      <div className="animate-fade-in-up stagger-6 flex items-center gap-4">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.48 }}
+        className="flex items-center gap-4"
+      >
         <button
           onClick={handleSave}
           disabled={saving}
-          className="relative inline-flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 font-semibold text-sm rounded-lg transition-all disabled:opacity-50 shadow-lg shadow-amber-500/20 hover:shadow-amber-500/30"
+          className="relative inline-flex items-center gap-2 px-6 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-zinc-950 font-semibold text-sm rounded-xl transition-all disabled:opacity-50 shadow-lg shadow-cyan-500/20 hover:shadow-cyan-500/30"
         >
           {saving ? (
             <Loader2 size={15} className="animate-spin" />
@@ -547,7 +582,7 @@ export default function Settings() {
             {saveMessage}
           </span>
         )}
-      </div>
+      </motion.div>
     </div>
   )
 }

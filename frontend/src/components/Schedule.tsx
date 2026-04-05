@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import {
   Clock, Calendar, Plus, Edit3, Trash2, ArrowDown, ArrowUp,
   Power, CheckCircle, Loader2,
@@ -136,8 +137,8 @@ export default function SchedulePage() {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center h-40 gap-3 animate-fade-in">
-        <Loader2 size={24} className="text-amber-400 animate-spin" />
+      <div className="flex flex-col items-center justify-center h-40 gap-3">
+        <Loader2 size={24} className="text-cyan-400 animate-spin" />
         <p className="text-sm text-zinc-500">Loading schedules...</p>
       </div>
     )
@@ -145,7 +146,7 @@ export default function SchedulePage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-40 animate-fade-in">
+      <div className="flex items-center justify-center h-40">
         <p className="text-red-400">{error}</p>
       </div>
     )
@@ -154,33 +155,39 @@ export default function SchedulePage() {
   return (
     <div className="space-y-6 max-w-[1400px]">
       {/* Page header */}
-      <div className="flex items-center justify-between animate-fade-in">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0 }}
+        className="flex items-center justify-between"
+      >
         <div>
           <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Schedule</h1>
           <p className="text-sm text-zinc-500 mt-0.5">Automated bandwidth scheduling</p>
         </div>
         <button
           onClick={openAddForm}
-          className="group relative px-4 py-2 rounded-xl font-medium text-sm transition-all duration-300 overflow-hidden"
+          className="px-4 py-2 rounded-xl font-medium text-sm bg-cyan-500 hover:bg-cyan-400 text-zinc-950 transition-all duration-300 flex items-center gap-1.5"
         >
-          <div className="absolute inset-0 bg-gradient-to-r from-amber-600 via-orange-500 to-amber-600 transition-opacity duration-300" />
-          <div className="absolute inset-0 bg-gradient-to-r from-amber-500 via-orange-400 to-amber-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-          <div className="absolute -inset-0.5 bg-gradient-to-r from-amber-500 to-orange-500 rounded-xl blur-md opacity-20 group-hover:opacity-40 transition-opacity duration-300" />
-          <div className="relative flex items-center gap-1.5 text-white">
-            <Plus size={16} strokeWidth={2.5} />
-            <span>Add Schedule</span>
-          </div>
+          <Plus size={16} strokeWidth={2.5} />
+          <span>Add Schedule</span>
         </button>
-      </div>
+      </motion.div>
 
       {/* Schedule form */}
-      {showForm && (
-        <div className="gradient-border glow-amber animate-fade-in-up">
-          <div className="gradient-border-inner p-5 space-y-5">
+      <AnimatePresence>
+        {showForm && (
+          <motion.div
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ delay: 0.08 }}
+            className="glass-card p-5 space-y-5"
+          >
             {/* Form header */}
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center">
-                <Clock size={14} className="text-amber-400" />
+              <div className="w-7 h-7 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+                <Clock size={14} className="text-cyan-400" />
               </div>
               <h3 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">
                 {editingId !== null ? 'Edit Schedule' : 'New Schedule'}
@@ -198,8 +205,8 @@ export default function SchedulePage() {
                     onClick={() => toggleDay(i)}
                     className={`w-11 h-11 rounded-lg text-sm font-medium transition-all duration-200 border ${
                       form.daysOfWeek.includes(i)
-                        ? 'bg-amber-500/15 border-amber-500/40 text-amber-400 shadow-sm shadow-amber-500/10'
-                        : 'bg-forge-raised border-forge-border-strong text-zinc-500 hover:text-zinc-300 hover:border-zinc-600'
+                        ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-400 shadow-sm shadow-cyan-500/10'
+                        : 'glass-inset text-zinc-500 hover:text-zinc-300 hover:border-zinc-600'
                     }`}
                   >
                     {name}
@@ -216,7 +223,7 @@ export default function SchedulePage() {
                   type="time"
                   value={form.startTime}
                   onChange={(e) => setForm((prev) => ({ ...prev, startTime: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-lg bg-forge-raised border border-forge-border-strong text-zinc-50 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all"
+                  className="w-full px-3 py-2.5 rounded-xl glass-inset text-zinc-50 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500/30 transition-all"
                 />
               </div>
               <div>
@@ -225,7 +232,7 @@ export default function SchedulePage() {
                   type="time"
                   value={form.endTime}
                   onChange={(e) => setForm((prev) => ({ ...prev, endTime: e.target.value }))}
-                  className="w-full px-3 py-2.5 rounded-lg bg-forge-raised border border-forge-border-strong text-zinc-50 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all"
+                  className="w-full px-3 py-2.5 rounded-xl glass-inset text-zinc-50 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500/30 transition-all"
                 />
               </div>
             </div>
@@ -234,7 +241,7 @@ export default function SchedulePage() {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="flex items-center gap-1.5 text-sm text-zinc-400 mb-1.5">
-                  <ArrowDown size={13} className="text-orange-400" />
+                  <ArrowDown size={13} className="text-cyan-400" />
                   Download Speed (Mbps)
                 </label>
                 <input
@@ -247,12 +254,12 @@ export default function SchedulePage() {
                       downloadMbps: parseInt(e.target.value) || 0,
                     }))
                   }
-                  className="w-full px-3 py-2.5 rounded-lg bg-forge-raised border border-forge-border-strong text-zinc-50 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all"
+                  className="w-full px-3 py-2.5 rounded-xl glass-inset text-zinc-50 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500/30 transition-all"
                 />
               </div>
               <div>
                 <label className="flex items-center gap-1.5 text-sm text-zinc-400 mb-1.5">
-                  <ArrowUp size={13} className="text-slate-400" />
+                  <ArrowUp size={13} className="text-amber-400" />
                   Upload Speed (Mbps)
                 </label>
                 <input
@@ -265,7 +272,7 @@ export default function SchedulePage() {
                       uploadMbps: parseInt(e.target.value) || 0,
                     }))
                   }
-                  className="w-full px-3 py-2.5 rounded-lg bg-forge-raised border border-forge-border-strong text-zinc-50 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-amber-500/50 focus:border-amber-500/50 transition-all"
+                  className="w-full px-3 py-2.5 rounded-xl glass-inset text-zinc-50 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500/30 transition-all"
                 />
               </div>
             </div>
@@ -275,14 +282,10 @@ export default function SchedulePage() {
               <button
                 onClick={handleSave}
                 disabled={saving}
-                className="group relative px-5 py-2.5 rounded-xl font-medium text-sm transition-all duration-300 overflow-hidden disabled:opacity-50 disabled:cursor-not-allowed"
+                className="px-5 py-2.5 rounded-xl font-medium text-sm bg-cyan-500 hover:bg-cyan-400 text-zinc-950 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
               >
-                <div className="absolute inset-0 bg-gradient-to-r from-amber-600 via-orange-500 to-amber-600 transition-opacity duration-300" />
-                <div className="absolute inset-0 bg-gradient-to-r from-amber-500 via-orange-400 to-amber-500 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
-                <div className="relative flex items-center gap-1.5 text-white">
-                  <CheckCircle size={15} />
-                  <span>{saving ? 'Saving...' : 'Save Schedule'}</span>
-                </div>
+                <CheckCircle size={15} />
+                <span>{saving ? 'Saving...' : 'Save Schedule'}</span>
               </button>
               <button
                 onClick={closeForm}
@@ -291,13 +294,18 @@ export default function SchedulePage() {
                 Cancel
               </button>
             </div>
-          </div>
-        </div>
-      )}
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Schedule list or empty state */}
       {schedules.length === 0 && !showForm ? (
-        <div className="bg-forge-surface rounded-xl border border-forge-border p-12 animate-fade-in-up">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08 }}
+          className="glass-card p-12"
+        >
           <div className="flex flex-col items-center text-center">
             <div className="w-12 h-12 rounded-xl bg-zinc-800/50 border border-forge-border flex items-center justify-center mb-4">
               <Calendar size={22} className="text-zinc-600" />
@@ -307,20 +315,23 @@ export default function SchedulePage() {
               Add a schedule to automatically adjust bandwidth targets at specific times and days.
             </p>
           </div>
-        </div>
+        </motion.div>
       ) : (
         <div className="space-y-3">
           {schedules.map((schedule, index) => (
-            <div
+            <motion.div
               key={schedule.id}
-              className={`animate-fade-in-up stagger-${Math.min(index + 1, 6)} bg-forge-surface rounded-xl border border-forge-border overflow-hidden card-hover ${
+              initial={{ opacity: 0, y: 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.08 }}
+              className={`glass-card card-hover overflow-hidden ${
                 !schedule.enabled ? 'opacity-50' : ''
               }`}
             >
               {/* Left accent bar via inset element */}
               <div className="flex">
                 <div className={`w-1 flex-shrink-0 ${
-                  schedule.enabled ? 'bg-teal-500' : 'bg-zinc-700'
+                  schedule.enabled ? 'bg-cyan-500' : 'bg-zinc-700'
                 }`} />
                 <div className="flex-1 p-4">
                   <div className="flex items-start justify-between">
@@ -329,10 +340,10 @@ export default function SchedulePage() {
                       <div className="flex items-center gap-3">
                         <div className={`w-7 h-7 rounded-lg flex items-center justify-center ${
                           schedule.enabled
-                            ? 'bg-teal-500/10'
+                            ? 'bg-cyan-500/10'
                             : 'bg-zinc-800'
                         }`}>
-                          <Clock size={14} className={schedule.enabled ? 'text-teal-400' : 'text-zinc-600'} />
+                          <Clock size={14} className={schedule.enabled ? 'text-cyan-400' : 'text-zinc-600'} />
                         </div>
                         <div>
                           <span className="text-zinc-100 font-medium">
@@ -347,13 +358,13 @@ export default function SchedulePage() {
                       {/* Speed targets */}
                       <div className="flex items-center gap-4 ml-10">
                         <div className="flex items-center gap-1.5">
-                          <ArrowDown size={13} className="text-orange-400" />
+                          <ArrowDown size={13} className="text-cyan-400" />
                           <span className="text-sm font-mono text-zinc-300 tabular-nums">
                             {formatSpeed(schedule.downloadMbps)}
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5">
-                          <ArrowUp size={13} className="text-slate-400" />
+                          <ArrowUp size={13} className="text-amber-400" />
                           <span className="text-sm font-mono text-zinc-400 tabular-nums">
                             {formatSpeed(schedule.uploadMbps)}
                           </span>
@@ -367,7 +378,7 @@ export default function SchedulePage() {
                       <button
                         onClick={() => handleToggleEnabled(schedule)}
                         className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                          schedule.enabled ? 'bg-amber-500' : 'bg-zinc-700'
+                          schedule.enabled ? 'bg-cyan-500' : 'bg-zinc-700'
                         }`}
                         title={schedule.enabled ? 'Disable' : 'Enable'}
                       >
@@ -380,7 +391,7 @@ export default function SchedulePage() {
 
                       <button
                         onClick={() => openEditForm(schedule)}
-                        className="p-2 rounded-lg text-zinc-500 hover:text-amber-400 hover:bg-amber-500/10 transition-all"
+                        className="p-2 rounded-lg text-zinc-500 hover:text-cyan-400 hover:bg-cyan-500/10 transition-all"
                         title="Edit"
                       >
                         <Edit3 size={15} />
@@ -396,7 +407,7 @@ export default function SchedulePage() {
                   </div>
                 </div>
               </div>
-            </div>
+            </motion.div>
           ))}
         </div>
       )}

@@ -1,9 +1,10 @@
 import { useState, useMemo } from 'react'
+import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, ChevronRight, Unlock } from 'lucide-react'
 import { ServerHealth, UploadServerHealth } from '../api/client'
 import { extractProvider } from '../utils/providerGrouping'
 
-// ── Types ────────────────────────────────────────────────────────────
+// -- Types --
 
 interface NormalizedServer {
   url: string
@@ -36,14 +37,14 @@ export interface ProviderAccordionProps {
   onUnblock?: (url: string) => void
 }
 
-// ── Color palette (Tailwind classes) ─────────────────────────────────
+// -- Color palette (Tailwind classes) --
 
 const PROVIDER_DOT_COLORS = [
   'bg-amber-500', 'bg-orange-500', 'bg-yellow-500', 'bg-red-500', 'bg-emerald-500',
   'bg-rose-500', 'bg-violet-500', 'bg-cyan-500', 'bg-lime-500', 'bg-pink-500',
 ]
 
-// ── Helpers ──────────────────────────────────────────────────────────
+// -- Helpers --
 
 function normalizeDownload(s: ServerHealth): NormalizedServer {
   return {
@@ -133,10 +134,10 @@ function statusColor(status: string): string {
 }
 
 function rowBg(index: number): string {
-  return index % 2 === 0 ? 'bg-forge-base' : 'bg-forge-surface'
+  return index % 2 === 0 ? 'bg-transparent' : 'bg-white/[0.01]'
 }
 
-// ── Grouping logic ───────────────────────────────────────────────────
+// -- Grouping logic --
 
 function buildProviderSections(servers: NormalizedServer[]): ProviderSection[] {
   const groupMap = new Map<string, NormalizedServer[]>()
@@ -180,7 +181,7 @@ function buildProviderSections(servers: NormalizedServer[]): ProviderSection[] {
   return sections
 }
 
-// ── Component ────────────────────────────────────────────────────────
+// -- Component --
 
 export default function ProviderAccordion({ downloadServers, uploadServers, onUnblock }: ProviderAccordionProps) {
   const [expandedProviders, setExpandedProviders] = useState<Set<string>>(() => new Set())
@@ -267,68 +268,78 @@ export default function ProviderAccordion({ downloadServers, uploadServers, onUn
               </button>
 
               {/* Expanded server table */}
-              {isExpanded && (
-                <div className="overflow-x-auto">
-                  <table className="w-full text-sm text-left">
-                    <thead>
-                      <tr className="border-b border-white/[0.06]">
-                        <th className="px-4 py-2 pl-10 text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Server</th>
-                        <th className="px-4 py-2 text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Location</th>
-                        <th className="px-4 py-2 text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Speed</th>
-                        <th className="px-4 py-2 text-[10px] font-semibold text-zinc-600 uppercase tracking-wider text-center">Streams</th>
-                        <th className="px-4 py-2 text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Transferred</th>
-                        <th className="px-4 py-2 text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Status</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-white/[0.03]">
-                      {section.servers
-                        .slice()
-                        .sort((a, b) => b.speedBps - a.speedBps)
-                        .map((server, idx) => {
-                          const cooldown = server.unhealthyUntil ? timeUntil(server.unhealthyUntil) : ''
-                          return (
-                            <tr key={server.url} className={`${rowBg(idx)} hover:bg-white/[0.02] transition-colors ${server.status === 'blocked' ? 'opacity-50' : ''}`}>
-                              <td className="px-4 py-2 pl-10 text-zinc-200 font-medium whitespace-nowrap text-xs">
-                                {formatUrl(server.url)}
-                              </td>
-                              <td className="px-4 py-2 text-zinc-500 whitespace-nowrap text-xs">
-                                {server.location || '\u2014'}
-                              </td>
-                              <td className="px-4 py-2 text-zinc-300 font-mono whitespace-nowrap text-xs">
-                                {formatSpeed(server.speedBps)}
-                              </td>
-                              <td className="px-4 py-2 text-zinc-400 text-center font-mono text-xs">
-                                {server.activeStreams}
-                              </td>
-                              <td className="px-4 py-2 text-zinc-500 font-mono whitespace-nowrap text-xs">
-                                {formatBytes(server.bytesTransferred)}
-                              </td>
-                              <td className="px-4 py-2 whitespace-nowrap">
-                                <div className="flex items-center gap-2">
-                                  <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusColor(server.status)}`}>
-                                    {server.status === 'healthy' && <span className="w-1 h-1 rounded-full bg-emerald-400" />}
-                                    {server.status === 'cooldown' && cooldown
-                                      ? `${cooldown}`
-                                      : server.status}
-                                  </span>
-                                  {server.status === 'blocked' && onUnblock && (
-                                    <button
-                                      onClick={() => onUnblock(server.url)}
-                                      className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors"
-                                    >
-                                      <Unlock size={10} />
-                                      Unblock
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          )
-                        })}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: 'auto' }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="overflow-hidden"
+                  >
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm text-left">
+                        <thead>
+                          <tr className="border-b border-white/[0.06]">
+                            <th className="px-4 py-2 pl-10 text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Server</th>
+                            <th className="px-4 py-2 text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Location</th>
+                            <th className="px-4 py-2 text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Speed</th>
+                            <th className="px-4 py-2 text-[10px] font-semibold text-zinc-600 uppercase tracking-wider text-center">Streams</th>
+                            <th className="px-4 py-2 text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Transferred</th>
+                            <th className="px-4 py-2 text-[10px] font-semibold text-zinc-600 uppercase tracking-wider">Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-white/[0.03]">
+                          {section.servers
+                            .slice()
+                            .sort((a, b) => b.speedBps - a.speedBps)
+                            .map((server, idx) => {
+                              const cooldown = server.unhealthyUntil ? timeUntil(server.unhealthyUntil) : ''
+                              return (
+                                <tr key={server.url} className={`${rowBg(idx)} hover:bg-white/[0.02] transition-colors ${server.status === 'blocked' ? 'opacity-50' : ''}`}>
+                                  <td className="px-4 py-2 pl-10 text-zinc-200 font-medium whitespace-nowrap text-xs">
+                                    {formatUrl(server.url)}
+                                  </td>
+                                  <td className="px-4 py-2 text-zinc-500 whitespace-nowrap text-xs">
+                                    {server.location || '\u2014'}
+                                  </td>
+                                  <td className="px-4 py-2 text-zinc-300 font-mono whitespace-nowrap text-xs">
+                                    {formatSpeed(server.speedBps)}
+                                  </td>
+                                  <td className="px-4 py-2 text-zinc-400 text-center font-mono text-xs">
+                                    {server.activeStreams}
+                                  </td>
+                                  <td className="px-4 py-2 text-zinc-500 font-mono whitespace-nowrap text-xs">
+                                    {formatBytes(server.bytesTransferred)}
+                                  </td>
+                                  <td className="px-4 py-2 whitespace-nowrap">
+                                    <div className="flex items-center gap-2">
+                                      <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider border ${statusColor(server.status)}`}>
+                                        {server.status === 'healthy' && <span className="w-1 h-1 rounded-full bg-emerald-400" />}
+                                        {server.status === 'cooldown' && cooldown
+                                          ? `${cooldown}`
+                                          : server.status}
+                                      </span>
+                                      {server.status === 'blocked' && onUnblock && (
+                                        <button
+                                          onClick={() => onUnblock(server.url)}
+                                          className="flex items-center gap-1 px-2 py-0.5 rounded-lg text-[10px] font-medium bg-red-500/10 text-red-400 border border-red-500/20 hover:bg-red-500/20 transition-colors"
+                                        >
+                                          <Unlock size={10} />
+                                          Unblock
+                                        </button>
+                                      )}
+                                    </div>
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           )
         })}

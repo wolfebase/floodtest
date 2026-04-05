@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { motion } from 'framer-motion'
 import { RefreshCw, Clock, History, AlertTriangle, CheckCircle, Download, ArrowRight } from 'lucide-react'
 import { api, UpdateStatus, UpdateHistoryEntry } from '../api/client'
 
@@ -92,14 +93,23 @@ export default function UpdatesPage() {
   return (
     <div className="space-y-5 max-w-[1400px]">
       {/* Header */}
-      <div className="animate-fade-in">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0 }}
+      >
         <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Updates</h1>
         <p className="text-sm text-zinc-500 mt-0.5">Version management & auto-updates</p>
-      </div>
+      </motion.div>
 
       {/* Docker status warning */}
       {status && !status.dockerAvailable && (
-        <div className="animate-fade-in-up bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 flex items-start gap-3">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08 }}
+          className="bg-amber-500/5 border border-amber-500/20 rounded-xl p-4 flex items-start gap-3"
+        >
           <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center flex-shrink-0 mt-0.5">
             <AlertTriangle size={14} className="text-amber-400" />
           </div>
@@ -109,11 +119,16 @@ export default function UpdatesPage() {
               Auto-updates require mounting <code className="px-1.5 py-0.5 bg-amber-500/10 border border-amber-500/15 rounded text-amber-300 font-mono text-[11px]">/var/run/docker.sock</code> into the container. Check your docker-compose.yml volumes.
             </p>
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Current Version */}
-      <div className="animate-fade-in-up bg-forge-surface rounded-xl border border-forge-border p-5">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.08 }}
+        className="glass-card card-hover p-5"
+      >
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-lg bg-indigo-500/10 flex items-center justify-center">
@@ -173,7 +188,7 @@ export default function UpdatesPage() {
           <button
             onClick={handleCheck}
             disabled={checking || !status?.dockerAvailable}
-            className="px-4 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-zinc-950 text-sm font-semibold rounded-lg transition-all disabled:opacity-50 disabled:hover:from-amber-500 disabled:hover:to-amber-600"
+            className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-zinc-950 text-sm font-semibold rounded-lg transition-all disabled:opacity-50"
           >
             {checking ? 'Checking...' : 'Check for Updates'}
           </button>
@@ -203,7 +218,7 @@ export default function UpdatesPage() {
 
         {/* Available update callout */}
         {status?.updateAvailable && (
-          <div className="mt-4 bg-gradient-to-r from-amber-500/5 to-orange-500/5 border border-amber-500/20 rounded-xl p-4">
+          <div className="mt-4 glass-inset rounded-xl p-4 border border-amber-500/20">
             <div className="flex items-center gap-2 mb-1">
               <ArrowRight size={14} className="text-amber-400" />
               <span className="text-sm text-amber-400 font-semibold">New version available</span>
@@ -220,10 +235,15 @@ export default function UpdatesPage() {
             )}
           </div>
         )}
-      </div>
+      </motion.div>
 
       {/* Auto-Update settings */}
-      <div className="animate-fade-in-up bg-forge-surface rounded-xl border border-forge-border p-5">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.16 }}
+        className="glass-card card-hover p-5"
+      >
         <div className="flex items-center gap-2 mb-5">
           <div className="w-7 h-7 rounded-lg bg-cyan-500/10 flex items-center justify-center">
             <Clock size={14} className="text-cyan-400" />
@@ -236,7 +256,7 @@ export default function UpdatesPage() {
             <div
               onClick={() => setAutoEnabled(!autoEnabled)}
               className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${
-                autoEnabled ? 'bg-amber-500' : 'bg-zinc-700'
+                autoEnabled ? 'bg-cyan-500' : 'bg-zinc-700'
               }`}
             >
               <div
@@ -257,7 +277,7 @@ export default function UpdatesPage() {
               <select
                 value={autoSchedule}
                 onChange={(e) => setAutoSchedule(e.target.value)}
-                className="px-3 py-2 bg-forge-raised border border-forge-border-strong rounded-lg text-zinc-50 text-sm focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                className="px-3 py-2 glass-inset rounded-xl text-zinc-50 text-sm focus:outline-none focus:ring-2 focus:ring-cyan-500/30 focus:border-cyan-500/30"
               >
                 <option value="daily">Daily at 3:00 AM</option>
                 <option value="weekly">Weekly — Sundays at 3:00 AM</option>
@@ -269,15 +289,20 @@ export default function UpdatesPage() {
           <button
             onClick={handleSaveAuto}
             disabled={savingAuto}
-            className="px-4 py-2 bg-forge-raised hover:bg-forge-border-strong text-zinc-200 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 border border-forge-border-strong"
+            className="px-4 py-2 glass hover:bg-white/[0.06] text-zinc-200 text-sm font-medium rounded-lg transition-colors disabled:opacity-50"
           >
             {savingAuto ? 'Saving...' : 'Save'}
           </button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Update History */}
-      <div className="animate-fade-in-up bg-forge-surface rounded-xl border border-forge-border p-5">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.24 }}
+        className="glass-card card-hover p-5"
+      >
         <div className="flex items-center gap-2 mb-5">
           <div className="w-7 h-7 rounded-lg bg-violet-500/10 flex items-center justify-center">
             <History size={14} className="text-violet-400" />
@@ -297,7 +322,7 @@ export default function UpdatesPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-forge-border">
+                <tr className="border-b border-white/[0.06]">
                   <th className="pb-2.5 text-[10px] font-semibold text-zinc-600 uppercase tracking-wider text-left">Time</th>
                   <th className="pb-2.5 text-[10px] font-semibold text-zinc-600 uppercase tracking-wider text-left">From</th>
                   <th className="pb-2.5 text-[10px] font-semibold text-zinc-600 uppercase tracking-wider text-left">To</th>
@@ -306,16 +331,22 @@ export default function UpdatesPage() {
                 </tr>
               </thead>
               <tbody>
-                {history.map((e) => (
-                  <tr key={e.id} className="border-b border-forge-border/30 hover:bg-white/[0.02] transition-colors">
+                {history.map((e, i) => (
+                  <motion.tr
+                    key={e.id}
+                    initial={{ opacity: 0, y: 8 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.05 }}
+                    className="border-b border-white/[0.03] hover:bg-white/[0.02] transition-colors"
+                  >
                     <td className="py-2.5 text-xs text-zinc-300">{new Date(e.createdAt).toLocaleString()}</td>
                     <td className="py-2.5">
-                      <span className="font-mono text-xs text-zinc-500 bg-forge-raised px-1.5 py-0.5 rounded" title={e.previousDigest}>
+                      <span className="font-mono text-xs text-zinc-500 glass-inset px-1.5 py-0.5 rounded" title={e.previousDigest}>
                         {e.previousDigest?.startsWith('sha256:') ? e.previousDigest.slice(7, 19) : e.previousDigest?.slice(0, 12) || '\u2014'}
                       </span>
                     </td>
                     <td className="py-2.5">
-                      <span className="font-mono text-xs text-zinc-500 bg-forge-raised px-1.5 py-0.5 rounded" title={e.newDigest}>
+                      <span className="font-mono text-xs text-zinc-500 glass-inset px-1.5 py-0.5 rounded" title={e.newDigest}>
                         {e.newDigest?.startsWith('sha256:') ? e.newDigest.slice(7, 19) : e.newDigest?.slice(0, 12) || '\u2014'}
                       </span>
                     </td>
@@ -333,13 +364,13 @@ export default function UpdatesPage() {
                       )}
                     </td>
                     <td className="py-2.5 text-xs text-zinc-600 max-w-48 truncate">{e.errorMessage}</td>
-                  </tr>
+                  </motion.tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-      </div>
+      </motion.div>
     </div>
   )
 }

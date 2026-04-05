@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import { motion } from 'framer-motion'
 import {
   ArrowDownCircle, ArrowUpCircle, Globe, AlertCircle, Zap,
   ChevronDown, ChevronRight,
@@ -33,8 +34,7 @@ interface NormalizedServer {
 
 type SectionType = 'download' | 'upload'
 
-// ── Helper functions ──────────────────────────────────────────────────
-
+// -- Helper functions --
 
 function normalizeDownload(s: ServerHealthData): NormalizedServer {
   return {
@@ -90,7 +90,7 @@ function setCollapsed(section: SectionType, collapsed: boolean) {
   }
 }
 
-// ── Status counts ─────────────────────────────────────────────────────
+// -- Status counts --
 
 interface StatusCounts {
   total: number
@@ -112,7 +112,7 @@ function computeCounts(servers: NormalizedServer[]): StatusCounts {
   }
 }
 
-// ── Inline status badges for the header ───────────────────────────────
+// -- Inline status badges for the header --
 
 function InlineStatusCounts({ counts }: { counts: StatusCounts }) {
   return (
@@ -161,7 +161,7 @@ function InlineStatusCounts({ counts }: { counts: StatusCounts }) {
 }
 
 
-// ── Main component ────────────────────────────────────────────────────
+// -- Main component --
 
 export default function ServerHealth({ speedTestRunning, speedTestCompleted, speedTestTotal }: Props) {
   const [downloadServers, setDownloadServers] = useState<ServerHealthData[]>([])
@@ -265,14 +265,14 @@ export default function ServerHealth({ speedTestRunning, speedTestCompleted, spe
 
   if (loading) {
     return (
-      <div className="space-y-5 max-w-[1400px] animate-fade-in">
+      <div className="space-y-5 max-w-[1400px]">
         <div>
           <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Servers</h1>
           <p className="text-sm text-zinc-500 mt-0.5">Download & upload server health monitoring</p>
         </div>
-        <div className="bg-forge-surface rounded-xl border border-forge-border p-6">
+        <div className="glass-card p-6">
           <div className="flex items-center gap-3">
-            <div className="w-5 h-5 border-2 border-amber-500/30 border-t-amber-500 rounded-full animate-spin" />
+            <div className="w-5 h-5 border-2 border-cyan-500/30 border-t-cyan-500 rounded-full animate-spin" />
             <span className="text-sm text-zinc-500">Loading server health...</span>
           </div>
         </div>
@@ -287,14 +287,23 @@ export default function ServerHealth({ speedTestRunning, speedTestCompleted, spe
   return (
     <div className="space-y-5 max-w-[1400px]">
       {/* Page header */}
-      <div className="animate-fade-in">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0 }}
+      >
         <h1 className="text-xl font-bold text-zinc-100 tracking-tight">Servers</h1>
         <p className="text-sm text-zinc-500 mt-0.5">Download & upload server health monitoring</p>
-      </div>
+      </motion.div>
 
       {/* Provider Breakdown summary */}
       {providerGroups.length > 0 && (
-        <div className="animate-fade-in-up bg-forge-surface rounded-xl border border-forge-border p-4 card-hover">
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08 }}
+          className="glass-card card-hover p-4"
+        >
           <div className="flex items-center gap-2 mb-4">
             <div className="w-7 h-7 rounded-lg bg-purple-500/10 flex items-center justify-center">
               <Globe size={14} className="text-purple-400" />
@@ -325,26 +334,31 @@ export default function ServerHealth({ speedTestRunning, speedTestCompleted, spe
               </div>
             ))}
           </div>
-        </div>
+        </motion.div>
       )}
 
       {/* Download Servers Section */}
-      <div className="animate-fade-in-up bg-forge-surface rounded-xl border border-forge-border overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.16 }}
+        className="glass-card overflow-hidden"
+      >
         {/* Collapsible header */}
         <div
-          className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none hover:bg-forge-raised/50 transition-colors border-b border-orange-500/20"
+          className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none hover:bg-white/[0.03] transition-colors border-b border-cyan-500/20"
           onClick={toggleDownload}
         >
           <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-orange-500/10 flex items-center justify-center">
-              <ArrowDownCircle size={14} className="text-orange-400" />
+            <div className="w-7 h-7 rounded-lg bg-cyan-500/10 flex items-center justify-center">
+              <ArrowDownCircle size={14} className="text-cyan-400" />
             </div>
             <div className="flex items-center gap-2">
               {downloadCollapsed
-                ? <ChevronRight size={14} className="text-orange-400" />
-                : <ChevronDown size={14} className="text-orange-400" />
+                ? <ChevronRight size={14} className="text-cyan-400" />
+                : <ChevronDown size={14} className="text-cyan-400" />
               }
-              <span className="text-sm font-semibold text-orange-400">Download Servers</span>
+              <span className="text-sm font-semibold text-cyan-400">Download Servers</span>
             </div>
             <InlineStatusCounts counts={downloadCounts} />
           </div>
@@ -367,7 +381,7 @@ export default function ServerHealth({ speedTestRunning, speedTestCompleted, spe
             <button
               onClick={handleSpeedTest}
               disabled={isRunning}
-              className="px-4 py-1.5 rounded-lg text-sm font-medium bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-zinc-950 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm shadow-amber-500/20"
+              className="px-4 py-1.5 rounded-lg text-sm font-medium bg-cyan-500 hover:bg-cyan-400 text-zinc-950 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-sm shadow-cyan-500/20"
             >
               {isRunning ? (
                 <span className="flex items-center gap-2">
@@ -384,18 +398,18 @@ export default function ServerHealth({ speedTestRunning, speedTestCompleted, spe
           </div>
         </div>
 
-        {/* Speed Test Progress Bar — between header and table */}
+        {/* Speed Test Progress Bar */}
         {!downloadCollapsed && isRunning && total > 0 && (
           <div className="px-4 py-3 border-b border-forge-border">
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm text-zinc-400">
                 Testing servers... <span className="font-mono text-zinc-300">{completed}/{total}</span> complete
               </span>
-              <span className="text-sm font-mono text-amber-400">{pct}%</span>
+              <span className="text-sm font-mono text-cyan-400">{pct}%</span>
             </div>
             <div className="relative h-2 bg-forge-raised rounded-full overflow-hidden">
               <div
-                className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-500 ease-out progress-shimmer"
+                className="h-full bg-gradient-to-r from-cyan-500 to-cyan-400 rounded-full transition-all duration-500 ease-out progress-shimmer"
                 style={{ width: `${pct}%` }}
               />
             </div>
@@ -409,25 +423,30 @@ export default function ServerHealth({ speedTestRunning, speedTestCompleted, spe
             onUnblock={handleUnblockDownload}
           />
         )}
-      </div>
+      </motion.div>
 
       {/* Upload Servers Section */}
-      <div className="animate-fade-in-up bg-forge-surface rounded-xl border border-forge-border overflow-hidden">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.24 }}
+        className="glass-card overflow-hidden"
+      >
         {/* Collapsible header */}
         <div
-          className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none hover:bg-forge-raised/50 transition-colors border-b border-slate-500/20"
+          className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 cursor-pointer select-none hover:bg-white/[0.03] transition-colors border-b border-amber-500/20"
           onClick={toggleUpload}
         >
           <div className="flex items-center gap-3">
-            <div className="w-7 h-7 rounded-lg bg-slate-500/10 flex items-center justify-center">
-              <ArrowUpCircle size={14} className="text-slate-400" />
+            <div className="w-7 h-7 rounded-lg bg-amber-500/10 flex items-center justify-center">
+              <ArrowUpCircle size={14} className="text-amber-400" />
             </div>
             <div className="flex items-center gap-2">
               {uploadCollapsed
-                ? <ChevronRight size={14} className="text-slate-400" />
-                : <ChevronDown size={14} className="text-slate-400" />
+                ? <ChevronRight size={14} className="text-amber-400" />
+                : <ChevronDown size={14} className="text-amber-400" />
               }
-              <span className="text-sm font-semibold text-slate-400">Upload Servers</span>
+              <span className="text-sm font-semibold text-amber-400">Upload Servers</span>
             </div>
             <InlineStatusCounts counts={uploadCounts} />
           </div>
@@ -452,7 +471,7 @@ export default function ServerHealth({ speedTestRunning, speedTestCompleted, spe
             onUnblock={handleUnblockUpload}
           />
         )}
-      </div>
+      </motion.div>
     </div>
   )
 }

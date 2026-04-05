@@ -16,8 +16,8 @@ function formatTime(iso: string): string {
 }
 
 const kindConfig: Record<string, { color: string; dot: string }> = {
-  stream: { color: 'text-amber-400', dot: 'bg-amber-400' },
-  server: { color: 'text-orange-400', dot: 'bg-orange-400' },
+  stream: { color: 'text-cyan-400', dot: 'bg-cyan-400' },
+  server: { color: 'text-amber-400', dot: 'bg-amber-400' },
   adjust: { color: 'text-emerald-400', dot: 'bg-emerald-400' },
   test:   { color: 'text-violet-400', dot: 'bg-violet-400' },
 }
@@ -36,7 +36,7 @@ export default function EngineLog({ events }: EngineLogProps) {
       </div>
       <div
         ref={containerRef}
-        className="h-40 overflow-y-auto space-y-0.5 pr-1"
+        className="h-40 overflow-y-auto space-y-0.5 pr-1 glass-inset rounded-xl p-3"
       >
         {events.length === 0 ? (
           <div className="flex items-center justify-center h-full">
@@ -48,7 +48,7 @@ export default function EngineLog({ events }: EngineLogProps) {
             return (
               <div
                 key={`${e.time}-${i}`}
-                className={`flex items-start gap-2 text-xs font-mono py-0.5 ${i === 0 ? 'animate-fade-in' : ''}`}
+                className="flex items-start gap-2 text-xs font-mono py-0.5"
               >
                 <span className="text-zinc-600 flex-shrink-0 tabular-nums">{formatTime(e.time)}</span>
                 <div className={`w-1.5 h-1.5 rounded-full ${cfg.dot} flex-shrink-0 mt-1`} />
