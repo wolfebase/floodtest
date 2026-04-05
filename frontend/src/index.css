@@ -1,43 +1,207 @@
+@import 'tailwindcss';
 @import '@fontsource-variable/geist';
 @import '@fontsource-variable/geist-mono';
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* ========================================
+   Theme — Design Tokens (Tailwind v4)
+   ======================================== */
 
-@layer base {
-  body {
-    font-family: 'Geist Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  }
+@theme {
+  /* Forge color palette */
+  --color-forge-base: #0a0a0a;
+  --color-forge-surface: #111113;
+  --color-forge-raised: #1a1a1e;
+  --color-forge-inset: #08080a;
+  --color-forge-border: rgba(255, 255, 255, 0.06);
+  --color-forge-border-subtle: rgba(255, 255, 255, 0.03);
+  --color-forge-border-strong: rgba(255, 255, 255, 0.1);
 
-  .font-mono {
-    font-family: 'Geist Mono Variable', 'JetBrains Mono', 'Fira Code', monospace;
-  }
+  /* Accent colors */
+  --color-dl: #06b6d4;
+  --color-dl-dim: #0891b2;
+  --color-dl-glow: rgba(6, 182, 212, 0.15);
+  --color-ul: #f59e0b;
+  --color-ul-dim: #d97706;
+  --color-ul-glow: rgba(245, 158, 11, 0.15);
+  --color-ok: #22c55e;
+  --color-ok-glow: rgba(34, 197, 94, 0.15);
+  --color-danger: #ef4444;
+  --color-danger-glow: rgba(239, 68, 68, 0.15);
+
+  /* Fonts */
+  --font-sans: 'Geist Variable', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-mono: 'Geist Mono Variable', 'JetBrains Mono', 'Fira Code', monospace;
 }
 
 /* ========================================
-   Animations
+   Base Layer
    ======================================== */
 
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
+@layer base {
+  body {
+    font-family: var(--font-sans);
+    background: var(--color-forge-base);
+    color: #fafafa;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::-webkit-scrollbar { width: 5px; height: 5px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.08); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.14); }
 }
 
-@keyframes fade-in-up {
-  from { opacity: 0; transform: translateY(16px); }
-  to   { opacity: 1; transform: translateY(0); }
+/* ========================================
+   Glass Morphism Utilities
+   ======================================== */
+
+@utility glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(16px) saturate(120%);
+  -webkit-backdrop-filter: blur(16px) saturate(120%);
+  border: 1px solid rgba(255, 255, 255, 0.06);
 }
 
-@keyframes slide-in-left {
-  from { opacity: 0; transform: translateX(-12px); }
-  to   { opacity: 1; transform: translateX(0); }
+@utility glass-strong {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(24px) saturate(130%);
+  -webkit-backdrop-filter: blur(24px) saturate(130%);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-@keyframes pulse-glow {
-  0%, 100% { box-shadow: 0 0 8px rgba(245, 158, 11, 0.3); }
-  50%      { box-shadow: 0 0 24px rgba(245, 158, 11, 0.6), 0 0 48px rgba(245, 158, 11, 0.2); }
+@utility glass-inset {
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.03);
 }
+
+@utility glass-card {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(12px) saturate(110%);
+  -webkit-backdrop-filter: blur(12px) saturate(110%);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ========================================
+   Gradient Text Utilities
+   ======================================== */
+
+@utility text-gradient-cyan {
+  background: linear-gradient(135deg, #06b6d4, #22d3ee);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility text-gradient-amber {
+  background: linear-gradient(135deg, #f59e0b, #fbbf24);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@utility text-gradient-fire {
+  background: linear-gradient(135deg, #fbbf24, #f59e0b, #ea580c);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ========================================
+   Glow Utilities
+   ======================================== */
+
+@utility glow-cyan {
+  box-shadow: 0 0 40px rgba(6, 182, 212, 0.06), 0 0 80px rgba(6, 182, 212, 0.03);
+}
+
+@utility glow-amber {
+  box-shadow: 0 0 40px rgba(245, 158, 11, 0.06), 0 0 80px rgba(245, 158, 11, 0.03);
+}
+
+@utility glow-cyan-strong {
+  box-shadow: 0 0 30px rgba(6, 182, 212, 0.12), 0 0 60px rgba(6, 182, 212, 0.06);
+}
+
+@utility glow-amber-strong {
+  box-shadow: 0 0 30px rgba(245, 158, 11, 0.12), 0 0 60px rgba(245, 158, 11, 0.06);
+}
+
+/* ========================================
+   Gradient Border
+   ======================================== */
+
+@utility gradient-border {
+  position: relative;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #06b6d4, #f59e0b, #06b6d4);
+  background-size: 300% 300%;
+  animation: border-flow 6s ease infinite;
+  padding: 1px;
+}
+
+@utility gradient-border-inner {
+  background: #0a0a0a;
+  border-radius: 15px;
+}
+
+/* ========================================
+   Nav Indicator
+   ======================================== */
+
+.nav-indicator {
+  position: relative;
+}
+.nav-indicator::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%) scaleY(0);
+  width: 2px;
+  height: 60%;
+  border-radius: 0 2px 2px 0;
+  background: linear-gradient(180deg, #06b6d4, #0891b2);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.nav-indicator.active::before {
+  transform: translateY(-50%) scaleY(1);
+}
+
+/* ========================================
+   Progress Shimmer
+   ======================================== */
+
+.progress-shimmer::after {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%);
+  background-size: 200% 100%;
+  animation: shimmer 2s ease-in-out infinite;
+}
+
+/* ========================================
+   Card hover effect (glass version)
+   ======================================== */
+
+.card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.card-hover:hover {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  transform: translateY(-1px);
+}
+
+/* ========================================
+   Keyframe Animations
+   ======================================== */
 
 @keyframes shimmer {
   0%   { background-position: -200% 0; }
@@ -50,71 +214,54 @@
   100% { background-position: 0% 50%; }
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-4px); }
-}
-
 @keyframes breathe {
-  0%, 100% { opacity: 0.4; }
-  50%      { opacity: 0.8; }
+  0%, 100% { opacity: 0.3; }
+  50%      { opacity: 0.7; }
 }
 
-@keyframes spin-slow {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
+@keyframes ambient-drift {
+  0%   { transform: translateX(-20%) translateY(-10%) rotate(0deg); }
+  33%  { transform: translateX(10%) translateY(-20%) rotate(120deg); }
+  66%  { transform: translateX(-10%) translateY(10%) rotate(240deg); }
+  100% { transform: translateX(-20%) translateY(-10%) rotate(360deg); }
 }
 
-@keyframes count-up {
-  from { opacity: 0; transform: scale(0.95); }
-  to   { opacity: 1; transform: scale(1); }
-}
-
-@keyframes gradient-shift {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-/* ========================================
-   Utility Classes
-   ======================================== */
-
+/* Legacy animation classes (kept for components not yet migrated to FM) */
 .animate-fade-in {
   animation: fade-in 0.4s ease-out both;
 }
-
 .animate-fade-in-up {
   animation: fade-in-up 0.5s ease-out both;
 }
-
 .animate-slide-in-left {
   animation: slide-in-left 0.3s ease-out both;
 }
-
-.animate-pulse-glow {
-  animation: pulse-glow 2s ease-in-out infinite;
+.animate-breathe {
+  animation: breathe 3s ease-in-out infinite;
 }
-
+.animate-border-flow {
+  background-size: 300% 300%;
+  animation: border-flow 4s ease infinite;
+}
 .animate-shimmer {
   background-size: 200% 100%;
   animation: shimmer 2s ease-in-out infinite;
 }
 
-.animate-float {
-  animation: float 3s ease-in-out infinite;
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(16px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes slide-in-left {
+  from { opacity: 0; transform: translateX(-12px); }
+  to   { opacity: 1; transform: translateX(0); }
 }
 
-.animate-breathe {
-  animation: breathe 3s ease-in-out infinite;
-}
-
-.animate-border-flow {
-  background-size: 300% 300%;
-  animation: border-flow 4s ease infinite;
-}
-
-/* Staggered delays for card animations */
+/* Staggered delays (legacy, kept for components not yet migrated) */
 .stagger-1 { animation-delay: 0.05s; }
 .stagger-2 { animation-delay: 0.10s; }
 .stagger-3 { animation-delay: 0.15s; }
@@ -122,108 +269,34 @@
 .stagger-5 { animation-delay: 0.25s; }
 .stagger-6 { animation-delay: 0.30s; }
 
-/* Glass morphism */
-.glass {
-  background: rgba(24, 24, 27, 0.7);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+/* Ambient background light ribbons */
+.ambient-bg {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
 }
-
-.glass-subtle {
-  background: rgba(24, 24, 27, 0.5);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-}
-
-/* Gradient border wrapper */
-.gradient-border {
-  position: relative;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #f59e0b, #ea580c, #f59e0b);
-  background-size: 300% 300%;
-  animation: border-flow 4s ease infinite;
-  padding: 1px;
-}
-
-.gradient-border-inner {
-  background: #18181b;
-  border-radius: 11px;
-}
-
-/* Gradient text */
-.text-gradient-amber {
-  background: linear-gradient(135deg, #f59e0b, #fb923c);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.text-gradient-fire {
-  background: linear-gradient(135deg, #fbbf24, #f59e0b, #ea580c);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* Ambient glow - use on containers */
-.glow-amber {
-  box-shadow: 0 0 60px rgba(245, 158, 11, 0.08), 0 0 20px rgba(245, 158, 11, 0.05);
-}
-
-.glow-amber-strong {
-  box-shadow: 0 0 40px rgba(245, 158, 11, 0.15), 0 0 80px rgba(245, 158, 11, 0.08);
-}
-
-/* Card hover lift */
-.card-hover {
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-.card-hover:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(245, 158, 11, 0.1);
-}
-
-/* Active nav indicator */
-.nav-indicator {
-  position: relative;
-}
-.nav-indicator::before {
+.ambient-bg::before,
+.ambient-bg::after {
   content: '';
   position: absolute;
-  left: 0;
-  top: 50%;
-  transform: translateY(-50%) scaleY(0);
-  width: 3px;
-  height: 60%;
-  border-radius: 0 3px 3px 0;
-  background: linear-gradient(180deg, #f59e0b, #ea580c);
-  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  filter: blur(120px);
+  opacity: 0.03;
+  animation: ambient-drift 30s ease-in-out infinite;
 }
-.nav-indicator.active::before {
-  transform: translateY(-50%) scaleY(1);
+.ambient-bg::before {
+  top: -200px;
+  right: -100px;
+  background: radial-gradient(circle, #06b6d4, transparent 70%);
 }
-
-/* Scrollbar styling */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: #18181b; }
-::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: #52525b; }
-
-/* Progress bar shimmer overlay */
-.progress-shimmer::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: linear-gradient(
-    90deg,
-    transparent 0%,
-    rgba(255, 255, 255, 0.1) 50%,
-    transparent 100%
-  );
-  background-size: 200% 100%;
-  animation: shimmer 1.5s ease-in-out infinite;
+.ambient-bg::after {
+  bottom: -200px;
+  left: -100px;
+  background: radial-gradient(circle, #f59e0b, transparent 70%);
+  animation-delay: -15s;
+  animation-direction: reverse;
 }
-
