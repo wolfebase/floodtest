@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Zap, Power, Flame } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { WsStats } from '../hooks/useWebSocket'
 import { api } from '../api/client'
 import { groupDownloadServers, ProviderGroup } from '../utils/providerGrouping'
@@ -92,21 +93,29 @@ export default function ControlSurface({ stats }: ControlSurfaceProps) {
   // --- IDLE STATE ---
   if (!stats.running) {
     return (
-      <div className="gradient-border glow-amber">
+      <motion.div
+        initial={{ opacity: 0, y: 8 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="gradient-border glow-cyan"
+      >
         <div className="gradient-border-inner p-5">
           {/* Header */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
             <div className="flex items-center gap-3">
               <div className="relative flex-shrink-0">
-                <div className="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center">
-                  <Zap size={20} className="text-amber-400" />
+                <div className="w-10 h-10 rounded-xl bg-cyan-500/10 border border-cyan-500/20 flex items-center justify-center">
+                  <Zap size={20} className="text-cyan-400" />
                 </div>
-                <div className="absolute inset-0 rounded-xl bg-amber-500/20 blur-lg animate-breathe" />
+                <motion.div
+                  className="absolute inset-0 rounded-xl bg-cyan-500/20 blur-lg"
+                  animate={{ opacity: [0.15, 0.35, 0.15] }}
+                  transition={{ duration: 3, repeat: Infinity }}
+                />
               </div>
               <div className="min-w-0">
                 <div className="flex items-center gap-2">
                   <span className="text-sm sm:text-base font-bold text-zinc-100">Ready to Launch</span>
-                  <span className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                  <span className="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/20">
                     Standby
                   </span>
                 </div>
@@ -139,7 +148,7 @@ export default function ControlSurface({ stats }: ControlSurfaceProps) {
             <div className="mb-4">
               <div className="relative h-1.5 bg-forge-raised rounded-full overflow-hidden">
                 <div
-                  className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-300 progress-shimmer"
+                  className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-300 progress-shimmer"
                   style={{ width: `${stats.ispTestProgress}%` }}
                 />
               </div>
@@ -148,31 +157,37 @@ export default function ControlSurface({ stats }: ControlSurfaceProps) {
           )}
 
           {/* Launch button */}
-          <button
+          <motion.button
             onClick={handleToggle}
             disabled={toggling}
             aria-label="Launch Engine"
+            whileHover={{ scale: 1.01 }}
+            whileTap={{ scale: 0.98 }}
             className="group relative w-full py-4 rounded-xl font-bold text-base transition-all duration-300 disabled:opacity-50 overflow-hidden"
           >
-            <div className="absolute inset-0 bg-gradient-to-r from-amber-600 via-orange-500 to-red-500 transition-opacity duration-300" />
-            <div className="absolute inset-0 bg-gradient-to-r from-amber-500 via-orange-400 to-red-400 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-600 via-blue-500 to-cyan-400 transition-opacity duration-300" />
+            <div className="absolute inset-0 bg-gradient-to-r from-cyan-500 via-blue-400 to-cyan-300 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent animate-shimmer" />
-            <div className="absolute -inset-1 bg-gradient-to-r from-amber-500 to-red-500 rounded-xl blur-lg opacity-30 group-hover:opacity-50 transition-opacity duration-300" />
+            <div className="absolute -inset-1 bg-gradient-to-r from-cyan-500 to-blue-500 rounded-xl blur-lg opacity-30 group-hover:opacity-50 transition-opacity duration-300" />
             <div className="relative flex items-center justify-center gap-2 text-white">
               <Flame size={20} strokeWidth={2.5} className="group-hover:animate-float" />
               <span className="tracking-wide">Launch Engine</span>
             </div>
-          </button>
+          </motion.button>
         </div>
-      </div>
+      </motion.div>
     )
   }
 
   // --- RUNNING STATE ---
   return (
-    <div className="relative bg-forge-surface rounded-xl border border-emerald-500/20 overflow-hidden transition-all duration-300 glow-amber">
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="relative bg-forge-surface rounded-xl border border-emerald-500/20 overflow-hidden transition-all duration-300 glow-cyan"
+    >
       {/* Subtle animated top border */}
-      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-500 via-amber-500 to-emerald-500 animate-border-flow" style={{ backgroundSize: '200% 100%' }} />
+      <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-emerald-500 via-cyan-500 to-emerald-500 animate-border-flow" style={{ backgroundSize: '200% 100%' }} />
 
       {/* Header bar */}
       <div className="flex flex-wrap items-center justify-between gap-2 px-3 sm:px-5 py-3 sm:py-3.5 border-b border-white/[0.06]">
@@ -202,10 +217,10 @@ export default function ControlSurface({ stats }: ControlSurfaceProps) {
 
       {stats.ispTestRunning && (
         <div className="px-5 py-2.5 border-b border-white/[0.06] space-y-1.5">
-          <p className="text-xs font-medium text-amber-400">{stats.ispTestPhase || 'Running speed test...'}</p>
+          <p className="text-xs font-medium text-cyan-400">{stats.ispTestPhase || 'Running speed test...'}</p>
           <div className="relative h-1.5 bg-forge-raised rounded-full overflow-hidden">
             <div
-              className="h-full bg-gradient-to-r from-amber-500 to-orange-500 rounded-full transition-all duration-300 progress-shimmer"
+              className="h-full bg-gradient-to-r from-cyan-500 to-blue-500 rounded-full transition-all duration-300 progress-shimmer"
               style={{ width: `${stats.ispTestProgress}%` }}
             />
           </div>
@@ -224,6 +239,6 @@ export default function ControlSurface({ stats }: ControlSurfaceProps) {
           <SessionMetrics stats={stats} events={stats.events || []} />
         </div>
       </div>
-    </div>
+    </motion.div>
   )
 }

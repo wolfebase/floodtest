@@ -1,4 +1,5 @@
 import { ArrowDown, ArrowUp, Gauge, Zap, TrendingUp } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { WsStats } from '../hooks/useWebSocket'
 
 interface ThroughputColumnProps {
@@ -40,8 +41,8 @@ function MiniSparkline({ data, color, height = 32 }: { data: number[]; color: st
     <svg viewBox={`0 0 ${w} ${height}`} className="w-full" style={{ height }} preserveAspectRatio="none">
       <defs>
         <linearGradient id={`spark-${color}`} x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor={color} stopOpacity={0.3} />
-          <stop offset="100%" stopColor={color} stopOpacity={0} />
+          <stop offset="0%" stopColor="#06b6d4" stopOpacity={0.3} />
+          <stop offset="100%" stopColor="#06b6d4" stopOpacity={0} />
         </linearGradient>
       </defs>
       <path d={areaPath} fill={`url(#spark-${color})`} />
@@ -64,6 +65,9 @@ export default function ThroughputColumn({ stats, mode, sparkline }: ThroughputC
     ? (totalBytes / 1e9) / (stats.uptimeSeconds / 3600)
     : 0
 
+  const dlSpeed = formatSpeed(stats.downloadBps)
+  const ulSpeed = formatSpeed(stats.uploadBps)
+
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2">
@@ -75,18 +79,24 @@ export default function ThroughputColumn({ stats, mode, sparkline }: ThroughputC
       <div className="space-y-2">
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-orange-500/10 flex items-center justify-center">
-              <ArrowDown size={12} className="text-orange-400" />
+            <div className="w-5 h-5 rounded-md bg-cyan-500/10 flex items-center justify-center">
+              <ArrowDown size={12} className="text-cyan-400" />
             </div>
-            <span className="text-2xl font-bold text-orange-400 font-mono tabular-nums leading-none">
-              {formatSpeed(stats.downloadBps)}
-            </span>
+            <motion.span
+              key={dlSpeed}
+              initial={{ opacity: 0.7, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.2 }}
+              className="text-2xl font-bold text-cyan-400 font-mono tabular-nums leading-none"
+            >
+              {dlSpeed}
+            </motion.span>
           </div>
           {/* Current vs Peak bar */}
           {peakDl > 0 && (
             <div className="ml-7 mt-1 flex items-center gap-2">
               <div className="flex-1 h-1 bg-forge-raised rounded-full overflow-hidden">
-                <div className="h-full bg-orange-500/60 rounded-full transition-all duration-300" style={{ width: `${dlPeakPct}%` }} />
+                <div className="h-full bg-cyan-500/60 rounded-full transition-all duration-300" style={{ width: `${dlPeakPct}%` }} />
               </div>
               <span className="text-[10px] text-zinc-600 font-mono">{formatSpeed(peakDl)} pk</span>
             </div>
@@ -95,17 +105,23 @@ export default function ThroughputColumn({ stats, mode, sparkline }: ThroughputC
 
         <div>
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 rounded-md bg-slate-500/10 flex items-center justify-center">
-              <ArrowUp size={12} className="text-slate-400" />
+            <div className="w-5 h-5 rounded-md bg-amber-500/10 flex items-center justify-center">
+              <ArrowUp size={12} className="text-amber-400" />
             </div>
-            <span className="text-2xl font-bold text-slate-400 font-mono tabular-nums leading-none">
-              {formatSpeed(stats.uploadBps)}
-            </span>
+            <motion.span
+              key={ulSpeed}
+              initial={{ opacity: 0.7, scale: 0.98 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.2 }}
+              className="text-2xl font-bold text-amber-400 font-mono tabular-nums leading-none"
+            >
+              {ulSpeed}
+            </motion.span>
           </div>
           {peakUl > 0 && (
             <div className="ml-7 mt-1 flex items-center gap-2">
               <div className="flex-1 h-1 bg-forge-raised rounded-full overflow-hidden">
-                <div className="h-full bg-slate-500/60 rounded-full transition-all duration-300" style={{ width: `${ulPeakPct}%` }} />
+                <div className="h-full bg-amber-500/60 rounded-full transition-all duration-300" style={{ width: `${ulPeakPct}%` }} />
               </div>
               <span className="text-[10px] text-zinc-600 font-mono">{formatSpeed(peakUl)} pk</span>
             </div>
@@ -115,8 +131,8 @@ export default function ThroughputColumn({ stats, mode, sparkline }: ThroughputC
 
       {/* Sparkline */}
       {sparkline.length > 2 && (
-        <div className="rounded-lg bg-forge-inset border border-white/[0.03] p-1.5 overflow-hidden">
-          <MiniSparkline data={sparkline} color="#f97316" height={28} />
+        <div className="rounded-lg bg-forge-inset glass-inset border border-white/[0.03] p-1.5 overflow-hidden">
+          <MiniSparkline data={sparkline} color="#06b6d4" height={28} />
         </div>
       )}
 
@@ -154,8 +170,8 @@ export default function ThroughputColumn({ stats, mode, sparkline }: ThroughputC
         <div>
           <div className="text-[9px] font-semibold text-zinc-600 uppercase tracking-wider">Streams</div>
           <div className="text-xs font-mono text-zinc-300 flex items-center gap-1.5 mt-0.5">
-            <span className="text-orange-400">↓{stats.downloadStreams}</span>
-            <span className="text-slate-400">↑{stats.uploadStreams}</span>
+            <span className="text-cyan-400">↓{stats.downloadStreams}</span>
+            <span className="text-amber-400">↑{stats.uploadStreams}</span>
           </div>
         </div>
         <div>

@@ -1,4 +1,5 @@
 import { Timer, ArrowDownCircle, ArrowUpCircle, Database, TrendingUp, Activity } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { WsStats } from '../hooks/useWebSocket'
 import { EngineEvent } from '../api/client'
 
@@ -56,22 +57,29 @@ export default function SessionMetrics({ stats, events }: SessionMetricsProps) {
 
       {/* Uptime hero */}
       <div className="flex items-center gap-2">
-        <Timer size={14} className="text-amber-400" />
-        <span className="text-lg font-bold font-mono text-zinc-100 tabular-nums">{formatDuration(stats.uptimeSeconds)}</span>
+        <Timer size={14} className="text-cyan-400" />
+        <motion.span
+          key={stats.uptimeSeconds}
+          initial={{ opacity: 0.7 }}
+          animate={{ opacity: 1 }}
+          className="text-lg font-bold font-mono text-zinc-100 tabular-nums"
+        >
+          {formatDuration(stats.uptimeSeconds)}
+        </motion.span>
       </div>
 
       {/* Data transferred */}
-      <div className="space-y-1.5 rounded-lg bg-forge-inset border border-white/[0.03] p-2.5">
+      <div className="space-y-1.5 rounded-lg bg-forge-inset glass-inset border border-white/[0.03] p-2.5">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <ArrowDownCircle size={11} className="text-orange-400" />
+            <ArrowDownCircle size={11} className="text-cyan-400" />
             <span className="text-xs font-mono text-zinc-300 tabular-nums">{formatBytes(stats.sessionDownloadBytes)}</span>
           </div>
           <span className="text-[10px] font-mono text-zinc-600">avg {formatSpeed(avgDownload)}</span>
         </div>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-1.5">
-            <ArrowUpCircle size={11} className="text-slate-400" />
+            <ArrowUpCircle size={11} className="text-amber-400" />
             <span className="text-xs font-mono text-zinc-300 tabular-nums">{formatBytes(stats.sessionUploadBytes)}</span>
           </div>
           <span className="text-[10px] font-mono text-zinc-600">avg {formatSpeed(avgUpload)}</span>
@@ -95,8 +103,8 @@ export default function SessionMetrics({ stats, events }: SessionMetricsProps) {
           {recentEvents.map((e, i) => (
             <div key={`${e.time}-${i}`} className="flex items-start gap-1.5 text-[10px]">
               <span className={`w-1 h-1 rounded-full mt-1 flex-shrink-0 ${
-                e.kind === 'stream' ? 'bg-amber-400' :
-                e.kind === 'server' ? 'bg-orange-400' :
+                e.kind === 'stream' ? 'bg-cyan-400' :
+                e.kind === 'server' ? 'bg-amber-400' :
                 e.kind === 'test' ? 'bg-violet-400' :
                 'bg-zinc-500'
               }`} />

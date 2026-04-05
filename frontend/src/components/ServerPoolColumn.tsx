@@ -1,4 +1,5 @@
 import { Server, CheckCircle, AlertCircle, Globe, Waves } from 'lucide-react'
+import { motion } from 'framer-motion'
 import { WsStats } from '../hooks/useWebSocket'
 import { ProviderGroup } from '../utils/providerGrouping'
 
@@ -35,7 +36,7 @@ export default function ServerPoolColumn({ stats, providerGroups }: ServerPoolCo
       </div>
 
       {/* Compact health summary */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 glass-inset rounded-lg p-2.5">
         {/* Mini health ring */}
         <div className="relative w-11 h-11 flex-shrink-0">
           <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
@@ -72,10 +73,16 @@ export default function ServerPoolColumn({ stats, providerGroups }: ServerPoolCo
       {topProviders.length > 0 && (
         <div className="space-y-1.5">
           <div className="text-[9px] font-semibold text-zinc-600 uppercase tracking-wider">Active Providers</div>
-          {topProviders.map(p => {
+          {topProviders.map((p, i) => {
             const pct = Math.max(6, (p.totalSpeedBps / maxProviderSpeed) * 100)
             return (
-              <div key={p.name} className="flex items-center gap-2">
+              <motion.div
+                key={p.name}
+                initial={{ opacity: 0, x: -8 }}
+                animate={{ opacity: 1, x: 0 }}
+                transition={{ delay: i * 0.05, duration: 0.3 }}
+                className="flex items-center gap-2"
+              >
                 <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: p.color }} />
                 <span className="text-[10px] text-zinc-400 w-14 truncate">{p.name}</span>
                 <div className="flex-1 h-1.5 bg-forge-raised rounded-full overflow-hidden">
@@ -85,7 +92,7 @@ export default function ServerPoolColumn({ stats, providerGroups }: ServerPoolCo
                   />
                 </div>
                 <span className="text-[10px] font-mono text-zinc-500 w-8 text-right">{formatSpeed(p.totalSpeedBps)}</span>
-              </div>
+              </motion.div>
             )
           })}
         </div>
