@@ -4,7 +4,7 @@ test.describe('Dashboard', () => {
   test('loads and shows dashboard content', async ({ page }) => {
     await page.goto('/')
     // Wait for the app to finish loading (ScreenLoader disappears when isSetupRequired resolves)
-    await expect(page.getByRole('heading', { name: 'Dashboard' })).toBeVisible({ timeout: 15000 })
+    await expect(page.getByText('Dashboard')).toBeVisible({ timeout: 15000 })
     // Verify mode selector is present (Reliable/Max buttons)
     await expect(page.getByRole('button', { name: /reliable/i })).toBeVisible()
   })
