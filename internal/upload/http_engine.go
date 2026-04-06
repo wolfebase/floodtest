@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	mrand "math/rand"
 	"net"
 	"net/http"
 	"sync"
@@ -109,8 +110,22 @@ func (e *HTTPEngine) Start(ctx context.Context) error {
 	e.client = e.httpClient()
 
 	e.activeStreams.Store(0)
-	for i := 0; i < e.concurrency; i++ {
-		e.launchStream(childCtx)
+	// Stagger stream launches to avoid thundering-herd connection storms.
+	conc := e.concurrency
+	e.launchStream(childCtx)
+	if conc > 1 {
+		e.wg.Add(1)
+		go func() {
+			defer e.wg.Done()
+			for i := 1; i < conc; i++ {
+				select {
+				case <-childCtx.Done():
+					return
+				case <-time.After(50 * time.Millisecond):
+					e.launchStream(childCtx)
+				}
+			}
+		}()
 	}
 
 	// Auto-adjust goroutine.
@@ -174,10 +189,12 @@ func (e *HTTPEngine) uploadLoop(ctx context.Context) {
 			}
 			log.Printf("upload(http): error uploading to %s: %v", serverURL, err)
 			e.serverList.MarkUnhealthy(serverURL, err.Error())
+			// Jitter the retry to avoid synchronized retry storms.
+			jitter := time.Duration(mrand.Int63n(int64(time.Second)))
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(1 * time.Second):
+			case <-time.After(time.Second + jitter):
 			}
 			continue
 		}

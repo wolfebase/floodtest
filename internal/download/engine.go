@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net"
 	"net/http"
 	"sync"
@@ -104,8 +105,23 @@ func (e *Engine) Start(ctx context.Context) {
 	e.running.Store(true)
 	e.activeStreams.Store(0)
 
-	for i := 0; i < e.concurrency; i++ {
-		e.launchStream(ctx)
+	// Stagger stream launches to avoid thundering-herd connection storms.
+	// Launch first stream immediately, then space the rest ~50ms apart.
+	conc := e.concurrency
+	e.launchStream(ctx)
+	if conc > 1 {
+		e.wg.Add(1)
+		go func() {
+			defer e.wg.Done()
+			for i := 1; i < conc; i++ {
+				select {
+				case <-ctx.Done():
+					return
+				case <-time.After(50 * time.Millisecond):
+					e.launchStream(ctx)
+				}
+			}
+		}()
 	}
 
 	// Auto-adjust goroutine
@@ -217,10 +233,12 @@ func (e *Engine) downloadLoop(ctx context.Context) {
 			}
 			log.Printf("download error from %s: %v", serverURL, err)
 			e.serverList.MarkUnhealthy(serverURL, err.Error())
+			// Jitter the retry to avoid synchronized retry storms.
+			jitter := time.Duration(rand.Int63n(int64(retrySleep)))
 			select {
 			case <-ctx.Done():
 				return
-			case <-time.After(retrySleep):
+			case <-time.After(retrySleep + jitter):
 			}
 		} else {
 			// Completed successfully (EOF)

@@ -121,8 +121,22 @@ func (e *Engine) Start(ctx context.Context) error {
 	e.running.Store(true)
 
 	e.activeStreams.Store(0)
-	for i := 0; i < e.concurrency; i++ {
-		e.launchStream(childCtx)
+	// Stagger stream launches to avoid thundering-herd connection storms.
+	conc := e.concurrency
+	e.launchStream(childCtx)
+	if conc > 1 {
+		e.wg.Add(1)
+		go func() {
+			defer e.wg.Done()
+			for i := 1; i < conc; i++ {
+				select {
+				case <-childCtx.Done():
+					return
+				case <-time.After(50 * time.Millisecond):
+					e.launchStream(childCtx)
+				}
+			}
+		}()
 	}
 
 	// Auto-adjust goroutine
